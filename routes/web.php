@@ -1,0 +1,41 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TripController;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ProfileController;
+
+Route::get('/', function () {
+    // もしログイン済み(Auth::check())なら、旅行一覧ページにリダイレクト
+    if (Auth::check()) {
+        return redirect()->route('trips.index');
+    }
+
+    // 未ログインなら、専用の welcome ビューを表示
+    return view('welcome');
+});
+
+Auth::routes();
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+// 旅行関連のルート
+Route::resource('trips', TripController::class)->middleware('auth'); // 旅行のCRUD操作を提供
+
+// PhotoControllerのstoreメソッドを呼ぶ
+Route::post('/trips/{trip}/photos', [App\Http\Controllers\PhotoController::class, 'store'])
+    ->name('photos.store')
+    ->middleware('auth');
+
+    // タグ関連のルート
+Route::resource('tags', App\Http\Controllers\TagController::class)
+    ->only(['index', 'store', 'destroy']) // 今回は一覧、保存、削除だけ使う
+    ->middleware('auth');
+
+// ログイン必須(auth)のグループとして定義
+Route::middleware('auth')->group(function () {
+    // 編集フォーム表示 (GET /profile)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    // 更新処理 (PUT /profile)
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+});
