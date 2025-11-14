@@ -22,6 +22,7 @@ class Trip extends Model
     protected $fillable = [
         'title',
         'description',
+        'summary', // AI要約用カラムを追加
         'prefecture',
         'start_date',
         'end_date',

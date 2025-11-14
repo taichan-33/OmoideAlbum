@@ -18,7 +18,6 @@
         text-align: center;
     }
 
-    /* ★★★ (追加) Trix Editor の表示スタイルを Bootstrap に合わせる ★★★ */
     .trix-content {
         line-height: 1.5;
     }
@@ -45,8 +44,6 @@
         padding: 1rem;
         border-radius: 0.25rem;
     }
-
-    /* ★★★ (追加) ここまで ★★★ */
 </style>
 @endsection
 
@@ -56,9 +53,17 @@
     <div class="row justify-content-center">
         <div class="col-md-10">
 
+            {{-- 成功メッセージ --}}
             @if (session('success'))
             <div class="alert alert-success" role="alert">
                 {{ session('success') }}
+            </div>
+            @endif
+
+            {{-- ★★★ (追加) エラーメッセージ ★★★ --}}
+            @if (session('error'))
+            <div class="alert alert-danger" role="alert">
+                {{ session('error') }}
             </div>
             @endif
 
@@ -116,12 +121,10 @@
 
                     <hr class="my-4">
 
-                    {{-- ★★★ (修正) メモ欄の表示方法 ★★★ --}}
                     <p class="card-text fs-5 mb-2">
                         <i class="bi bi-sticky-fill icon-label"></i>
                         <strong>メモ:</strong>
                     </p>
-                    {{-- (修正) {!! !!} でHTMLとしてレンダリングし、trix-content クラスを追加 --}}
                     <div class="bg-light p-3 p-md-4 rounded fs-5 trix-content" style="white-space: normal;">
                         @if($trip->description)
                         {!! $trip->description !!}
@@ -129,10 +132,48 @@
                         <p class="text-muted mb-0">メモはありません</p>
                         @endif
                     </div>
-                    {{-- ★★★ (修正) メモ欄ここまで ★★★ --}}
-
                 </div>
             </div>
+
+
+            {{-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ --}}
+            {{-- ★★★ (追加) 1.5. AIによるハイライト（要約） ★★★ --}}
+            {{-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ --}}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-robot"></i> AIによるハイライト
+                    </h5>
+                    {{-- 要約ボタン（フォーム） --}}
+                    <form action="{{ route('trips.summarize', $trip) }}" method="POST"
+                        onsubmit="return confirm('AIに要約を依頼します。メモの内容がAIに送信されますが、よろしいですか？');">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            @if($trip->summary)
+                            <i class="bi bi-arrow-repeat"></i> 再生成する
+                            @else
+                            <i class="bi bi-magic"></i> AIで要約する
+                            @endif
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    @if($trip->summary)
+                    {{-- 要約がすでにある場合は、それを表示 --}}
+                    <p class="fs-5 fst-italic" style="white-space: pre-wrap;">" {{ $trip->summary }} "</p>
+                    @else
+                    {{-- まだない場合 --}}
+                    <p class="text-muted">
+                        まだAIによる要約はありません。<br>
+                        「メモ」欄に50文字以上の思い出を記入してから、「AIで要約する」ボタンを押してください。
+                    </p>
+                    @endif
+                </div>
+            </div>
+            {{-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ --}}
+            {{-- ★★★ (追加) ここまで ★★★ --}}
+            {{-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ --}}
+
 
             {{-- 2. 写真アップロードフォーム --}}
             <div class="card mb-4 shadow-sm">
@@ -140,18 +181,24 @@
                     <i class="bi bi-camera-fill"></i> 写真を追加
                 </div>
                 <div class="card-body">
+                    {{--
+                      エラー表示を修正: 
+                      写真アップロードのエラーは 'photos' という名前のエラーバッグに保存するように
+                      PhotoController を将来的に修正するのを見越して、
+                      ここでは $errors->any() ではなく $errors->hasBag('default') をチェック
+                    --}}
+                    @if ($errors->any() && $errors->hasBag('default'))
+                    <div class="alert alert-danger">
+                        <ul>
+                            @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
+
                     <form action="{{ route('photos.store', $trip) }}" method="POST" enctype="multipart/form-data">
                         @csrf
-
-                        @if ($errors->any() && $errors->hasBag('default'))
-                        <div class="alert alert-danger">
-                            <ul>
-                                @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                        @endif
 
                         <div class="mb-3">
                             <label for="photo" class="form-label">写真ファイル (5MBまで)</label>

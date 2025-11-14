@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -50,5 +51,10 @@ class User extends Authenticatable
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);
+    }
+
+    public function suggestions(): HasMany
+    {
+        return $this->hasMany(Suggestion::class);
     }
 }

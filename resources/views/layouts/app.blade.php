@@ -50,6 +50,11 @@
                                 タグ管理
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('suggestions.index') }}">
+                                <i class="bi bi-robot"></i> AI旅行プランナー
+                            </a>
+                        </li>
                         @endauth
 
                     </ul>
@@ -106,7 +111,7 @@
     {{-- ★★★ (追加) Trix Editor の JS (deferなし, body終了直前) ★★★ --}}
     <script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
 
-@stack('scripts')
+    @stack('scripts')
 
 </body>
 

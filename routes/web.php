@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AiSummaryController; // ★ これを追加
+use App\Http\Controllers\SuggestionController;
 
 Route::get('/', function () {
     // もしログイン済み(Auth::check())なら、旅行一覧ページにリダイレクト
@@ -27,7 +29,7 @@ Route::post('/trips/{trip}/photos', [App\Http\Controllers\PhotoController::class
     ->name('photos.store')
     ->middleware('auth');
 
-    // タグ関連のルート
+// タグ関連のルート
 Route::resource('tags', App\Http\Controllers\TagController::class)
     ->only(['index', 'store', 'destroy']) // 今回は一覧、保存、削除だけ使う
     ->middleware('auth');
@@ -39,3 +41,13 @@ Route::middleware('auth')->group(function () {
     // 更新処理 (PUT /profile)
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
+
+// --------------------------------------------------
+// ★ AI要約用のルートをここに追加 ★
+// --------------------------------------------------
+Route::post('/trips/{trip}/summarize', [AiSummaryController::class, 'generate'])
+    ->name('trips.summarize')
+    ->middleware('auth');
+
+Route::resource('suggestions', SuggestionController::class)
+     ->middleware('auth'); // ログイン必須
