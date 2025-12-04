@@ -2,38 +2,91 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class MapController extends Controller
 {
     /**
      * 制覇マップを表示する
      */
-    public function index(): View
+    public function index(): Response
     {
-        // 1. ログイン中のユーザーの、都道府県ごとの訪問回数を集計
-        // 結果例: ['東京都' => 5, '大阪府' => 1, ...]
-        $visitedCounts = Auth::user()->trips()
-            ->select('prefecture', DB::raw('count(*) as total'))
-            ->groupBy('prefecture')
-            ->pluck('total', 'prefecture');
+        $user = Auth::user();
 
-        // 2. 「兵庫県」-> "JP-28" のようなISOコードに変換し、回数を割り当てる
+        // 1. 訪問履歴の集計 (日付も取得)
+        // tripsテーブルからデータを取得し、都道府県ごとにグループ化
+        $trips = $user
+            ->trips()
+            ->select('prefecture', 'start_date')
+            ->orderBy('start_date', 'asc')
+            ->get();
+
         $mapData = [];
-        foreach ($visitedCounts as $prefName => $count) {
-            $code = $this->convertPrefectureToCode($prefName);
+        foreach ($trips as $trip) {
+            $code = $this->convertPrefectureToCode($trip->prefecture);
             if ($code) {
-                // その県コードに回数をセット
-                $mapData[$code] = $count;
+                if (!isset($mapData[$code])) {
+                    $mapData[$code] = [
+                        'count' => 0,
+                        'dates' => []
+                    ];
+                }
+                $mapData[$code]['count']++;
+                $mapData[$code]['dates'][] = $trip->start_date->format('Y/m/d');
             }
         }
 
-        // 3. ビューにデータを渡す
-        return view('map.index', [
-            'mapData' => $mapData
+        // 2. ピン留めした場所の取得
+        $pinnedCodes = DB::table('pinned_locations')
+            ->where('user_id', $user->id)
+            ->pluck('prefecture_code');
+
+        // 3. Inertiaレスポンスを返す
+        return Inertia::render('Map/Index', [
+            'mapData' => $mapData,
+            'pinnedCodes' => $pinnedCodes
         ]);
+    }
+
+    /**
+     * ピンを保存する
+     */
+    public function storePin(Request $request)
+    {
+        $request->validate([
+            'prefecture_code' => 'required|string|starts_with:JP-'
+        ]);
+
+        DB::table('pinned_locations')->insertOrIgnore([
+            'user_id' => Auth::id(),
+            'prefecture_code' => $request->prefecture_code,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back();
+    }
+
+    /**
+     * ピンを削除する
+     */
+    public function destroyPin(Request $request)
+    {
+        $request->validate([
+            'prefecture_code' => 'required|string|starts_with:JP-'
+        ]);
+
+        DB::table('pinned_locations')
+            ->where('user_id', Auth::id())
+            ->where('prefecture_code', $request->prefecture_code)
+            ->delete();
+
+        return redirect()->back();
     }
 
     /**

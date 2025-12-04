@@ -11,15 +11,15 @@ use Illuminate\Support\Facades\Validator;
 class RegisterController extends Controller
 {
     /*
-    |--------------------------------------------------------------------------
-    | Register Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles the registration of new users as well as their
-    | validation and creation. By default this controller uses a trait to
-    | provide this functionality without requiring any additional code.
-    |
-    */
+     * |--------------------------------------------------------------------------
+     * | Register Controller
+     * |--------------------------------------------------------------------------
+     * |
+     * | This controller handles the registration of new users as well as their
+     * | validation and creation. By default this controller uses a trait to
+     * | provide this functionality without requiring any additional code.
+     * |
+     */
 
     use RegistersUsers;
 
@@ -28,7 +28,7 @@ class RegisterController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    protected $redirectTo = '/trips';
 
     /**
      * Create a new controller instance.
@@ -46,12 +46,34 @@ class RegisterController extends Controller
      * @param  array  $data
      * @return \Illuminate\Contracts\Validation\Validator
      */
+
+    /**
+     * Show the application registration form.
+     *
+     * @return \Inertia\Response
+     */
+    public function showRegistrationForm()
+    {
+        return \Inertia\Inertia::render('Auth/Register');
+    }
+
+    /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
     protected function validator(array $data)
     {
         return Validator::make($data, [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'secret_code' => ['required', 'string', function ($attribute, $value, $fail) {
+                if ($value !== '20241103') {
+                    $fail('招待コードが正しくありません。');
+                }
+            }],
         ]);
     }
 

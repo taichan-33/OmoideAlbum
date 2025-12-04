@@ -8,15 +8,15 @@ use Illuminate\Foundation\Auth\AuthenticatesUsers;
 class LoginController extends Controller
 {
     /*
-    |--------------------------------------------------------------------------
-    | Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles authenticating users for the application and
-    | redirecting them to your home screen. The controller uses a trait
-    | to conveniently provide its functionality to your applications.
-    |
-    */
+     * |--------------------------------------------------------------------------
+     * | Login Controller
+     * |--------------------------------------------------------------------------
+     * |
+     * | This controller handles authenticating users for the application and
+     * | redirecting them to your home screen. The controller uses a trait
+     * | to conveniently provide its functionality to your applications.
+     * |
+     */
 
     use AuthenticatesUsers;
 
@@ -25,7 +25,7 @@ class LoginController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    protected $redirectTo = '/trips';
 
     /**
      * Create a new controller instance.
@@ -36,5 +36,15 @@ class LoginController extends Controller
     {
         $this->middleware('guest')->except('logout');
         $this->middleware('auth')->only('logout');
+    }
+
+    /**
+     * Show the application's login form.
+     *
+     * @return \Inertia\Response
+     */
+    public function showLoginForm()
+    {
+        return \Inertia\Inertia::render('Auth/Login');
     }
 }

@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Suggestion;
 use App\Models\Trip;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SuggestionController extends Controller
 {
@@ -28,7 +29,7 @@ class SuggestionController extends Controller
     /**
      * AI旅行提案の一覧を表示 (★検索機能付きに改修)
      */
-    public function index(Request $request): View
+    public function index(Request $request): Response
     {
         // ログイン中のユーザーの提案クエリを準備
         $query = Auth::user()->suggestions();
@@ -38,7 +39,8 @@ class SuggestionController extends Controller
             $keyword = '%' . $request->keyword . '%';
             // title または content (TrixのHTML) の中を検索
             $query->where(function ($q) use ($keyword) {
-                $q->where('title', 'LIKE', $keyword)
+                $q
+                    ->where('title', 'LIKE', $keyword)
                     ->orWhere('content', 'LIKE', $keyword);
             });
         }
@@ -58,7 +60,10 @@ class SuggestionController extends Controller
         // 検索・ソート結果を取得 (ページネーションは後でもOK)
         $suggestions = $query->get();
 
-        return view('suggestions.index', compact('suggestions'));
+        return Inertia::render('Suggestions/Index', [
+            'suggestions' => $suggestions,
+            'filters' => $request->only(['keyword', 'sort']),
+        ]);
     }
 
     /**
@@ -79,7 +84,8 @@ class SuggestionController extends Controller
 
         // 2. 過去の「旅行」データを取得 (タグによる絞り込み)
         $travelTagNames = ['旅行', '宿泊'];
-        $trips = $user->trips()
+        $trips = $user
+            ->trips()
             ->with('tags')
             ->whereHas('tags', function ($query) use ($travelTagNames) {
                 $query->whereIn('name', $travelTagNames);
@@ -87,7 +93,8 @@ class SuggestionController extends Controller
             ->get();
 
         if ($trips->isEmpty()) {
-            return redirect()->route('suggestions.index')
+            return redirect()
+                ->route('suggestions.index')
                 ->with('error', '提案を生成するための「' . implode('・', $travelTagNames) . '」タグがついた思い出がありません。');
         }
 
@@ -97,15 +104,15 @@ class SuggestionController extends Controller
         // 4. AIに渡すためのプロンプト（過去データ）を整形
         $pastData = "--- ユーザーの過去の旅行履歴 (分析対象) ---\n";
         foreach ($trips as $index => $trip) {
-            $pastData .= ($index + 1) . ". ";
-            $pastData .= "タイトル: " . $trip->title . " | ";
-            $pastData .= "場所: " . $trip->prefecture . " | ";
-            $pastData .= "泊数: " . $trip->nights . "泊 | ";
+            $pastData .= ($index + 1) . '. ';
+            $pastData .= 'タイトル: ' . $trip->title . ' | ';
+            $pastData .= '場所: ' . $trip->prefecture . ' | ';
+            $pastData .= '泊数: ' . $trip->nights . '泊 | ';
             if ($trip->tags->isNotEmpty()) {
-                $pastData .= "タグ: " . $trip->tags->pluck('name')->join(', ') . " | ";
+                $pastData .= 'タグ: ' . $trip->tags->pluck('name')->join(', ') . ' | ';
             }
             if ($trip->description) {
-                $pastData .= "メモ: " . $this->cleanTrixContent($trip->description) . "\n";
+                $pastData .= 'メモ: ' . $this->cleanTrixContent($trip->description) . "\n";
             } else {
                 $pastData .= "メモ: (記載なし)\n";
             }
@@ -114,7 +121,7 @@ class SuggestionController extends Controller
         if ($suggestions->isNotEmpty()) {
             $pastData .= "\n--- AIによる過去の提案履歴 (これとは重複させないこと) ---\n";
             foreach ($suggestions as $index => $suggestion) {
-                $pastData .= ($index + 1) . ". " . $suggestion->title . "\n";
+                $pastData .= ($index + 1) . '. ' . $suggestion->title . "\n";
             }
         }
 
@@ -123,7 +130,7 @@ class SuggestionController extends Controller
         $hasOptionalRequest = false;
         foreach ($validatedOptional as $key => $value) {
             if (!empty($value)) {
-                $pastData .= $key . ": " . $value . "\n";
+                $pastData .= $key . ': ' . $value . "\n";
                 $hasOptionalRequest = true;
             }
         }
@@ -135,12 +142,13 @@ class SuggestionController extends Controller
         $apiKey = config('services.openai.key');
         if (empty($apiKey)) {
             Log::error('OpenAI API Key is not configured.');
-            return redirect()->route('suggestions.index')
+            return redirect()
+                ->route('suggestions.index')
                 ->with('error', 'AI機能が設定されていません。');
         }
 
         // 6. (★修正) AIへの命令（プロンプト）を「宿泊先」「名産物」を追加した最終版に変更
-        $systemPrompt = "あなたは優秀な旅行プランナーです。ユーザーの過去の旅行データを分析し、彼らが次に行きたくなるような最高の旅行プランを1つ提案してください。
+        $systemPrompt = 'あなたは優秀な旅行プランナーです。ユーザーの過去の旅行データを分析し、彼らが次に行きたくなるような最高の旅行プランを1つ提案してください。
 **最重要：** ユーザーから「追加リクエスト (最優先事項)」が提供されている場合は、その内容を**最優先**して、旅行プランを提案してください。
 **重要：** 「AIによる過去の提案履歴」を読み、それらとは**絶対に重複しない**、全く新しい場所やテーマの提案を行ってください。
 
@@ -157,22 +165,22 @@ class SuggestionController extends Controller
 5. `local_food`: その地域の代表的な名産物や料理 (例: 「カニ、但馬牛、出石そば」) (文字列)。
 6. `itinerary`: 「モデル日程表」を、以下の形式のJSON配列 (Array) で作成してください。
    [
-     { \"day\": \"1日目\", \"icon\": \"bi-airplane-fill\", \"title\": \"〇〇到着と市内散策\", \"details\": \"空港からホテルへ移動。チェックイン後、△△広場を散策し、地元のレストランで夕食。\" },
-     { \"day\": \"2日目\", \"icon\": \"bi-camera-fill\", \"title\": \"主要観光地めぐり\", \"details\": \"午前中は〇〇博物館、午後は△△城を見学。\" },
-     { \"day\": \"3日目\", \"icon\": \"bi-bag-check-fill\", \"title\": \"お土産と帰路\", \"details\": \"朝市でお土産を購入し、空港へ。\" }
+     { "day": "1日目", "icon": "bi-airplane-fill", "title": "〇〇到着と市内散策", "details": "空港からホテルへ移動。チェックイン後、△△広場を散策し、地元のレストランで夕食。" },
+     { "day": "2日目", "icon": "bi-camera-fill", "title": "主要観光地めぐり", "details": "午前中は〇〇博物館、午後は△△城を見学。" },
+     { "day": "3日目", "icon": "bi-bag-check-fill", "title": "お土産と帰路", "details": "朝市でお土産を購入し、空港へ。" }
    ]
-";
+';
 
         try {
             $response = Http::withToken($apiKey)
                 ->timeout(120)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-5',
+                    'model' => 'gpt-5.1-2025-11-13',
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => $systemPrompt // ★ 強化したプロンプトを適用
+                            'content' => $systemPrompt  // ★ 強化したプロンプトを適用
                         ],
                         [
                             'role' => 'user',
@@ -183,7 +191,8 @@ class SuggestionController extends Controller
 
             if ($response->failed()) {
                 Log::error('OpenAI API error (Suggestion): ' . $response->body());
-                return redirect()->route('suggestions.index')
+                return redirect()
+                    ->route('suggestions.index')
                     ->with('error', 'AIとの通信に失敗しました。');
             }
 
@@ -194,31 +203,37 @@ class SuggestionController extends Controller
             // (★修正) 'accommodation', 'local_food' もチェック
             if (
                 json_last_error() !== JSON_ERROR_NONE ||
-                !isset($suggestionData['title']) || !isset($suggestionData['content']) ||
-                !isset($suggestionData['recommendation_score']) || !isset($suggestionData['itinerary']) ||
-                !isset($suggestionData['accommodation']) || !isset($suggestionData['local_food']) ||
+                !isset($suggestionData['title']) ||
+                !isset($suggestionData['content']) ||
+                !isset($suggestionData['recommendation_score']) ||
+                !isset($suggestionData['itinerary']) ||
+                !isset($suggestionData['accommodation']) ||
+                !isset($suggestionData['local_food']) ||
                 !is_array($suggestionData['itinerary'])
             ) {
                 Log::error('AI response JSON decode error or missing keys. Response: ' . $jsonString);
-                return redirect()->route('suggestions.index')
+                return redirect()
+                    ->route('suggestions.index')
                     ->with('error', 'AIからの応答が不正な形式（キー不足）でした。');
             }
 
             // 9. (★修正) データベースに全データを保存
             $user->suggestions()->create([
                 'title' => $suggestionData['title'],
-                'recommendation_score' => (int)$suggestionData['recommendation_score'],
+                'recommendation_score' => (int) $suggestionData['recommendation_score'],
                 'content' => $suggestionData['content'],
-                'accommodation' => $suggestionData['accommodation'], // ★ 追加
-                'local_food' => $suggestionData['local_food'],       // ★ 追加
+                'accommodation' => $suggestionData['accommodation'],  // ★ 追加
+                'local_food' => $suggestionData['local_food'],  // ★ 追加
                 'itinerary_data' => $suggestionData['itinerary'],
             ]);
 
-            return redirect()->route('suggestions.index')
+            return redirect()
+                ->route('suggestions.index')
                 ->with('success', '新しい旅行プランが提案されました！');
         } catch (\Exception $e) {
             Log::error('AI Suggestion Exception: ' . $e->getMessage());
-            return redirect()->route('suggestions.index')
+            return redirect()
+                ->route('suggestions.index')
                 ->with('error', 'AI提案中に予期せぬエラーが発生しました。(' . $e->getMessage() . ')');
         }
     }
@@ -234,7 +249,8 @@ class SuggestionController extends Controller
 
         $suggestion->delete();
 
-        return redirect()->route('suggestions.index')
+        return redirect()
+            ->route('suggestions.index')
             ->with('success', '提案を削除しました。');
     }
 }

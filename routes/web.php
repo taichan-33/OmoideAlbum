@@ -1,13 +1,17 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AiSummaryController;  // ★ これを追加
+use App\Http\Controllers\MapController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SuggestionController;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AiSummaryController; // ★ これを追加
-use App\Http\Controllers\SuggestionController;
-use App\Http\Controllers\MapController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
+Route::get('/vue-test', function () {
+    return Inertia::render('Test');
+});
 
 Route::get('/', function () {
     // もしログイン済み(Auth::check())なら、旅行一覧ページにリダイレクト
@@ -16,15 +20,18 @@ Route::get('/', function () {
     }
 
     // 未ログインなら、専用の welcome ビューを表示
-    return view('welcome');
-});
+    return Inertia::render('Welcome', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+    ]);
+})->name('welcome');
 
 Auth::routes();
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+// Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 // 旅行関連のルート
-Route::resource('trips', TripController::class)->middleware('auth'); // 旅行のCRUD操作を提供
+Route::resource('trips', TripController::class)->middleware('auth');  // 旅行のCRUD操作を提供
 
 // PhotoControllerのstoreメソッドを呼ぶ
 Route::post('/trips/{trip}/photos', [App\Http\Controllers\PhotoController::class, 'store'])
@@ -33,7 +40,7 @@ Route::post('/trips/{trip}/photos', [App\Http\Controllers\PhotoController::class
 
 // タグ関連のルート
 Route::resource('tags', App\Http\Controllers\TagController::class)
-    ->only(['index', 'store', 'destroy']) // 今回は一覧、保存、削除だけ使う
+    ->only(['index', 'store', 'destroy'])  // 今回は一覧、保存、削除だけ使う
     ->middleware('auth');
 
 // ログイン必須(auth)のグループとして定義
@@ -52,8 +59,16 @@ Route::post('/trips/{trip}/summarize', [AiSummaryController::class, 'generate'])
     ->middleware('auth');
 
 Route::resource('suggestions', SuggestionController::class)
-    ->middleware('auth'); // ログイン必須
+    ->middleware('auth');  // ログイン必須
 
 Route::get('/map', [MapController::class, 'index'])
     ->name('map.index')
+    ->middleware('auth');
+
+Route::post('/map/pin', [MapController::class, 'storePin'])
+    ->name('map.pin.store')
+    ->middleware('auth');
+
+Route::delete('/map/pin', [MapController::class, 'destroyPin'])
+    ->name('map.pin.destroy')
     ->middleware('auth');
