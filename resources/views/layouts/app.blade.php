@@ -13,13 +13,13 @@
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
-    {{-- ★★★ (追加) Trix Editor の CSS ★★★ --}}
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
 
     @yield('styles')
+
+    {{-- ★★★ (修正) 1. jQuery を <head> に移動（ここが一番確実です） ★★★ --}}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 </head>
@@ -35,7 +35,6 @@
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto">
@@ -55,8 +54,12 @@
                                 <i class="bi bi-robot"></i> AI旅行プランナー
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('map.index') }}">
+                                <i class="bi bi-map-fill"></i> 制覇マップ
+                            </a>
+                        </li>
                         @endauth
-
                     </ul>
 
                     <ul class="navbar-nav ms-auto">
@@ -66,7 +69,6 @@
                             <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
                         </li>
                         @endif
-
                         @if (Route::has('register'))
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
@@ -77,8 +79,6 @@
                             <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 {{ Auth::user()->name }}
                             </a>
-
-
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 <a class="dropdown-item" href="{{ route('profile.edit') }}">
                                     マイページ編集
@@ -89,7 +89,6 @@
                                                      document.getElementById('logout-form').submit();">
                                     {{ __('Logout') }}
                                 </a>
-
                                 <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                     @csrf
                                 </form>
@@ -106,13 +105,13 @@
         </main>
     </div>
 
+    {{-- その他のスクリプト --}}
     <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
-
-    {{-- ★★★ (追加) Trix Editor の JS (deferなし, body終了直前) ★★★ --}}
     <script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
 
-    @stack('scripts')
+    {{-- ★★★ (修正) 2. ここにあった古い japan-map.js を削除しました ★★★ --}}
 
+    @stack('scripts')
 </body>
 
 </html>

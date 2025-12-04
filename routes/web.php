@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AiSummaryController; // ★ これを追加
 use App\Http\Controllers\SuggestionController;
+use App\Http\Controllers\MapController;
+
 
 Route::get('/', function () {
     // もしログイン済み(Auth::check())なら、旅行一覧ページにリダイレクト
@@ -50,4 +52,8 @@ Route::post('/trips/{trip}/summarize', [AiSummaryController::class, 'generate'])
     ->middleware('auth');
 
 Route::resource('suggestions', SuggestionController::class)
-     ->middleware('auth'); // ログイン必須
+    ->middleware('auth'); // ログイン必須
+
+Route::get('/map', [MapController::class, 'index'])
+    ->name('map.index')
+    ->middleware('auth');
