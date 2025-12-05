@@ -1,6 +1,7 @@
+```
 <script setup>
 import { marked } from "marked";
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 
 // ... (existing code)
 

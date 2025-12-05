@@ -57,7 +57,8 @@ const formatTextWithLinks = (text) => {
     if (!text) return "";
 
     // 1. URLを検出してリンクに変換
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    // URLの直後にある閉じ括弧や引用符を含めないように修正
+    const urlRegex = /(https?:\/\/[^\s<>"')]+)/g;
     let formatted = text.replace(urlRegex, (url) => {
         return `<a href="${url}" target="_blank" class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors mx-1">🔗 詳細を見る</a>`;
     });

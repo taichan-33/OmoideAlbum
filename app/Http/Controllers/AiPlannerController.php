@@ -161,7 +161,7 @@ class AiPlannerController extends Controller
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])
-                ->timeout(60)
+                ->timeout(120)
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => 'gpt-5.1-2025-11-13',
                     'messages' => $messages,
