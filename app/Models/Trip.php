@@ -51,6 +51,11 @@ class Trip extends Model
         return $this->hasMany(Photo::class);
     }
 
+    public function packingItems()
+    {
+        return $this->hasMany(PackingItem::class);
+    }
+
     public function tags(): BelongsToMany
     {
         // 'tag_trip' 中間テーブルを経由して Tag モデルに関連付く

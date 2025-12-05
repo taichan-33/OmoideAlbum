@@ -150,7 +150,7 @@ class TripController extends Controller
         // }
 
         // 関連する写真も一緒に読み込む (N+1問題対策)
-        $trip->load(['photos.comments.user', 'tags']);
+        $trip->load(['photos.comments.user', 'tags', 'packingItems']);
 
         return Inertia::render('Trips/Show', [
             'trip' => [
@@ -174,6 +174,11 @@ class TripController extends Controller
                         'comment' => $comment->comment,
                         'created_at' => $comment->created_at->format('Y/m/d H:i'),
                     ]),
+                ]),
+                'packing_items' => $trip->packingItems->map(fn($item) => [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'is_checked' => $item->is_checked,
                 ]),
             ],
         ]);

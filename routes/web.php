@@ -103,3 +103,20 @@ Route::post('/ai-planner', [App\Http\Controllers\AiPlannerController::class, 'st
 Route::get('/stats', [App\Http\Controllers\StatsController::class, 'index'])
     ->name('stats.index')
     ->middleware('auth');
+
+// Packing Items
+Route::post('/trips/{trip}/packing-items', [App\Http\Controllers\PackingItemController::class, 'store'])
+    ->name('packing-items.store')
+    ->middleware('auth');
+
+Route::post('/trips/{trip}/packing-items/batch', [App\Http\Controllers\PackingItemController::class, 'storeBatch'])
+    ->name('packing-items.store-batch')
+    ->middleware('auth');
+
+Route::put('/packing-items/{item}', [App\Http\Controllers\PackingItemController::class, 'update'])
+    ->name('packing-items.update')
+    ->middleware('auth');
+
+Route::delete('/packing-items/{item}', [App\Http\Controllers\PackingItemController::class, 'destroy'])
+    ->name('packing-items.destroy')
+    ->middleware('auth');

@@ -7,6 +7,7 @@ import PhotoGallery from "@/Components/Trips/PhotoGallery.vue";
 import PhotoModal from "@/Components/Trips/PhotoModal.vue";
 import TripHero from "@/Components/Trips/TripHero.vue";
 import PhotoUploadForm from "@/Components/Trips/PhotoUploadForm.vue";
+import PackingList from "@/Components/PackingList.vue";
 
 const props = defineProps({
     trip: Object,
@@ -90,6 +91,12 @@ const refreshSelectedPhoto = () => {
 
                 <!-- Right Column: Sidebar -->
                 <div class="space-y-8">
+                    <!-- Packing List -->
+                    <PackingList
+                        :trip-id="trip.id"
+                        :items="trip.packing_items"
+                    />
+
                     <!-- Upload Card -->
                     <PhotoUploadForm :trip-id="trip.id" />
                 </div>
