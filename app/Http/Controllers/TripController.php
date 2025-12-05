@@ -28,28 +28,9 @@ class TripController extends Controller
         $query = Trip::query()->with(['tags', 'photos']);
 
         // ------------------------------------
-        // ▼▼▼ 検索ロジック ▼▼▼
+        // ▼▼▼ 検索ロジック (Scope利用) ▼▼▼
         // ------------------------------------
-
-        // 1. 都道府県検索 (部分一致)
-        if ($request->filled('prefecture')) {
-            $query->where('prefecture', 'LIKE', '%' . $request->prefecture . '%');
-        }
-
-        // 2. タグ検索 (関連テーブル)
-        if ($request->filled('tag_id')) {
-            $query->whereHas('tags', function ($q) use ($request) {
-                $q->where('tag_id', $request->tag_id);
-            });
-        }
-
-        // 3. 日付範囲検索 (開始日)
-        if ($request->filled('date_from')) {
-            $query->where('start_date', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->where('start_date', '<=', $request->date_to);
-        }
+        $query->filter($request->all());
 
         // ------------------------------------
         // ▼▼▼ ソート（並び替え）ロジック ▼▼▼
@@ -103,23 +84,10 @@ class TripController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(\App\Http\Requests\StoreTripRequest $request): RedirectResponse
     {
-        // 1. バリデーション（ルールを定義）
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'prefecture' => 'required|array',  // 配列に変更
-            'prefecture.*' => 'string|max:100',  // 各要素は文字列
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'nights' => 'required|integer|min:0',
-            'description' => 'nullable|string',
-            // ★ tagsは配列で、中身が既存のtag_idであること
-            'tags' => 'nullable|array',
-            'tags.*' => 'exists:tags,id',  // 配列の各要素がtagsテーブルのidとして存在すること
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|max:4096',  // 各写真が画像ファイルで最大5MB
-        ]);
+        // 1. バリデーション済みデータを取得
+        $validated = $request->validated();
 
         // 1. 旅行情報を保存
         // ★ 夫婦共有のため、user_idは保存するが、表示制限はしない
@@ -227,7 +195,7 @@ class TripController extends Controller
     /**
      * 旅行を更新
      */
-    public function update(Request $request, Trip $trip): RedirectResponse
+    public function update(\App\Http\Requests\UpdateTripRequest $request, Trip $trip): RedirectResponse
     {
         // ログイン中のユーザーの旅行かチェック
         // ★ 夫婦共有のため許可
@@ -235,21 +203,7 @@ class TripController extends Controller
         //     abort(403, 'Unauthorized action.');
         // }
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'prefecture' => 'required|array',  // 配列に変更
-            'prefecture.*' => 'string|max:100',  // 各要素は文字列
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'nights' => 'required|integer|min:0',
-            'description' => 'nullable|string',
-            'tags' => 'nullable|array',
-            'tags.*' => 'exists:tags,id',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|max:4096',
-            'delete_photos' => 'nullable|array',  // 削除する写真のID配列
-            'delete_photos.*' => 'exists:photos,id',  // 存在する写真IDであること
-        ]);
+        $validated = $request->validated();
 
         // 1. 旅行情報を更新
         $trip->update([

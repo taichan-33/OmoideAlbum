@@ -56,4 +56,26 @@ class Trip extends Model
         // 'tag_trip' 中間テーブルを経由して Tag モデルに関連付く
         return $this->belongsToMany(Tag::class, 'tag_trip');
     }
+
+    /**
+     * 検索フィルター (Scope)
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array $filters
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFilter($query, array $filters)
+    {
+        $query->when($filters['prefecture'] ?? null, function ($q, $pref) {
+            $q->where('prefecture', 'LIKE', '%' . $pref . '%');
+        })->when($filters['tag_id'] ?? null, function ($q, $tagId) {
+            $q->whereHas('tags', fn($subQ) => $subQ->where('tag_id', $tagId));
+        })->when($filters['date_from'] ?? null, function ($q, $date) {
+            $q->where('start_date', '>=', $date);
+        })->when($filters['date_to'] ?? null, function ($q, $date) {
+            $q->where('start_date', '<=', $date);
+        });
+
+        return $query;
+    }
 }

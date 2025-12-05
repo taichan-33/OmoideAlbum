@@ -40,6 +40,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'prefectures' => collect(\App\Enums\Prefecture::cases())->map(fn($p) => $p->label())->values()->toArray(),
         ];
     }
 }

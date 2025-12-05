@@ -107,7 +107,7 @@ class AiSummaryController extends Controller
             $response = Http::withToken($apiKey)
                 ->timeout(350) // 画像処理は時間がかかるためタイムアウトを延長
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-5', // (gpt-4o や gpt-4-turbo など、画像認識対応モデル)
+                    'model' => 'gpt-5.1-2025-11-13', // (gpt-4o や gpt-4-turbo など、画像認識対応モデル)
                     'messages' => [
                         [
                             'role' => 'system',

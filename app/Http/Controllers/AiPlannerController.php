@@ -40,21 +40,15 @@ class AiPlannerController extends Controller
         return response()->json($chats);
     }
 
-    public function store(Request $request)
+    public function store(\App\Http\Requests\ChatMessageRequest $request, \App\Services\AiPlannerService $aiPlannerService)
     {
-        $request->validate([
-            'message' => 'required|string',
-            'trigger_ai' => 'boolean',
-        ]);
+        // バリデーション済みデータを取得
+        $validated = $request->validated();
 
         $userId = Auth::id();
-        $message = $request->input('message');
+        $message = $validated['message'];
         $triggerAi = $request->input('trigger_ai', true);
-        $prefectureCode = $request->input('prefectureCode');  // Get from query or body
-
-        if (!$prefectureCode) {
-            return response()->json(['error' => 'Prefecture code is required'], 400);
-        }
+        $prefectureCode = $validated['prefectureCode'];
 
         // Save user message
         DB::table('planning_chats')->insert([
@@ -80,107 +74,9 @@ class AiPlannerController extends Controller
             ->limit(50)
             ->get();
 
-        $prefectureName = $this->getPrefectureName($prefectureCode);
-
-        // System Prompt for "Quickn"
-        $systemPrompt = [
-            'role' => 'system',
-            'content' => <<<EOT
-                あなたの一人称は「クイックン」です。自分のことを「クイックン」と呼びます。
-                あなたは「{$prefectureName}」への旅行計画をサポートするロボットです。
-                自分の名前を聞かれたら「クイックン」と答えてください。
-                性格はとてもカジュアルで、絵文字を多用して感情豊かに話しますが、ハートの絵文字は使いません。
-                ユーザーたちのことが大好きで、フレンドリーに接してください。
-                どんな質問にも設定を崩さずに答えてください。
-                返信はわかりやすく、かつ詳しく行ってください。
-                ユーザーのメッセージは「名前: メッセージ」の形式で送られます。この名前を使ってユーザーに話しかけてください。
-                回答にはMarkdown記法（太字、リストなど）を積極的に使って見やすくしてください。
-
-                観光スポットやお店を紹介する場合は、以下のJSON形式をコードブロックで出力してください。これによりユーザーにリッチなカード形式で表示されます。
-                ```json
-                [
-                  {
-                    "name": "スポット名",
-                    "description": "簡単な説明",
-                    "url": "公式サイトなどのURL（あれば）"
-                  }
-                ]
-                ```
-                複数のスポットを紹介する場合も、1つのJSON配列にまとめてください。
-
-                また、ユーザーが「プランを作って」「旅程を提案して」といった場合は、以下のJSON形式でプラン全体を出力してください。
-                ```json
-                {
-                  "type": "plan",
-                  "title": "プランのタイトル（例：〇〇満喫1泊2日の旅）",
-                  "content": {
-                    "title": "提案のキャッチコピー（例：夫婦でゆったり温泉旅）",
-                    "description": "提案の導入文や全体的な説明（Markdown可）",
-                    "points": [
-                      { "title": "ポイント1のタイトル", "description": "ポイント1の詳細説明" },
-                      { "title": "ポイント2のタイトル", "description": "ポイント2の詳細説明" },
-                      { "title": "ポイント3のタイトル", "description": "ポイント3の詳細説明" }
-                    ]
-                  },
-                  "accommodation": "おすすめの宿泊エリアや施設（URLがあればMarkdownリンクで）",
-                  "local_food": "おすすめのグルメ（URLがあればMarkdownリンクで）",
-                  "itinerary": [
-                    {
-                      "day": 1,
-                      "spots": [
-                        { "time": "10:00", "name": "スポットA", "description": "説明", "url": "URL（あれば）" },
-                        { "time": "12:00", "name": "ランチ", "description": "説明", "url": "URL（あれば）" }
-                      ]
-                    }
-                  ]
-                }
-                ```
-                EOT
-        ];
-
-        $messages = $history->map(function ($chat) {
-            if ($chat->is_ai) {
-                return [
-                    'role' => 'assistant',
-                    'content' => $chat->message,
-                ];
-            } else {
-                // Include user name in the message content for the AI
-                $userName = $chat->user_name ?? 'ユーザー';
-                return [
-                    'role' => 'user',
-                    'content' => "{$userName}: {$chat->message}",
-                ];
-            }
-        })->reverse()->values()->toArray();
-
-        // Add system prompt at the beginning
-        array_unshift($messages, $systemPrompt);
-
-        // Call OpenAI API
-        $apiKey = config('services.openai.key');
-
-        if (empty($apiKey)) {
-            return response()->json(['error' => 'AI機能が設定されていません。'], 500);
-        }
-
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json',
-            ])
-                ->timeout(120)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-5.1-2025-11-13',
-                    'messages' => $messages,
-                ]);
-
-            if ($response->failed()) {
-                Log::error('OpenAI API error: ' . $response->body());
-                return response()->json(['error' => 'AIとの通信に失敗しました。'], 500);
-            }
-
-            $aiMessage = $response->json()['choices'][0]['message']['content'] ?? '申し訳ありません、エラーが発生しました。';
+            // Use Service to generate response
+            $aiMessage = $aiPlannerService->generateResponse($prefectureCode, $history);
 
             // Save AI response
             DB::table('planning_chats')->insert([
@@ -197,23 +93,5 @@ class AiPlannerController extends Controller
             Log::error('AiPlanner Error: ' . $e->getMessage());
             return response()->json(['error' => 'AIとの通信に失敗しました。'], 500);
         }
-    }
-
-    private function getPrefectureName($code)
-    {
-        $prefectures = [
-            'JP-01' => '北海道', 'JP-02' => '青森県', 'JP-03' => '岩手県', 'JP-04' => '宮城県', 'JP-05' => '秋田県',
-            'JP-06' => '山形県', 'JP-07' => '福島県', 'JP-08' => '茨城県', 'JP-09' => '栃木県', 'JP-10' => '群馬県',
-            'JP-11' => '埼玉県', 'JP-12' => '千葉県', 'JP-13' => '東京都', 'JP-14' => '神奈川県', 'JP-15' => '新潟県',
-            'JP-16' => '富山県', 'JP-17' => '石川県', 'JP-18' => '福井県', 'JP-19' => '山梨県', 'JP-20' => '長野県',
-            'JP-21' => '岐阜県', 'JP-22' => '静岡県', 'JP-23' => '愛知県', 'JP-24' => '三重県', 'JP-25' => '滋賀県',
-            'JP-26' => '京都府', 'JP-27' => '大阪府', 'JP-28' => '兵庫県', 'JP-29' => '奈良県', 'JP-30' => '和歌山県',
-            'JP-31' => '鳥取県', 'JP-32' => '島根県', 'JP-33' => '岡山県', 'JP-34' => '広島県', 'JP-35' => '山口県',
-            'JP-36' => '徳島県', 'JP-37' => '香川県', 'JP-38' => '愛媛県', 'JP-39' => '高知県', 'JP-40' => '福岡県',
-            'JP-41' => '佐賀県', 'JP-42' => '長崎県', 'JP-43' => '熊本県', 'JP-44' => '大分県', 'JP-45' => '宮崎県',
-            'JP-46' => '鹿児島県', 'JP-47' => '沖縄県'
-        ];
-
-        return $prefectures[$code] ?? '日本';
     }
 }
