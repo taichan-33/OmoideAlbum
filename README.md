@@ -247,10 +247,92 @@ sequenceDiagram
     Gemini-->>Service: JSONレスポンス (プラン提案)
     Service->>DB: Suggestion保存 (一時保存)
     Service-->>Controller: プランデータ
+```
+
     Controller-->>User: プラン表示 (Inertia)
 
     User->>Controller: プラン保存 (Save)
     Controller->>DB: Suggestion更新 (is_saved = true)
     DB-->>Controller: 完了
     Controller-->>User: 保存完了通知
+
+## 🔄 シーケンス図 (旅行記録 & 写真アップロード)
+
+旅行の思い出を記録する際のフローです。
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Controller as TripController
+    participant PhotoController
+    participant DB as Database
+    participant Storage as File Storage
+
+    User->>Controller: 旅行作成 (タイトル, 日付, 場所)
+    Controller->>DB: Trip保存
+    DB-->>Controller: Trip ID返却
+
+    User->>PhotoController: 写真アップロード
+    PhotoController->>Storage: 画像ファイル保存
+    Storage-->>PhotoController: パス返却
+    PhotoController->>DB: Photo保存 (Trip ID紐付け)
+
+    PhotoController-->>User: 完了メッセージ & プレビュー表示
+```
+
+## 🔄 シーケンス図 (持ち物追加 & 通知)
+
+持ち物を追加した際に、パートナーに通知が届くまでのフローです。
+
+```mermaid
+sequenceDiagram
+    actor UserA as User A (操作者)
+    actor UserB as User B (パートナー)
+    participant Controller as PackingItemController
+    participant Notification as TripUpdated (Notification)
+    participant DB as Database
+    participant API as NotificationController
+
+    UserA->>Controller: 持ち物追加 (POST)
+    Controller->>DB: PackingItem保存
+
+    Controller->>Notification: 通知送信 (to User B)
+    Notification->>DB: notificationsテーブルにレコード作成
+
+    loop ポーリング (30秒ごと)
+        UserB->>API: GET /notifications
+        API->>DB: 未読通知取得
+        DB-->>API: 通知データ
+        API-->>UserB: JSONレスポンス
+        UserB->>UserB: 通知バッジ更新 (🔔)
+    end
+```
+
+## 🔄 シーケンス図 (マップ制覇 & ピン留め)
+
+地図上で「行った場所」や「行きたい場所」を管理するフローです。
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Controller as MapController
+    participant Service as MapService
+    participant DB as Database
+
+    User->>Controller: マップ表示 (GET /map)
+    Controller->>Service: getMapData(User)
+    Service->>DB: 旅行履歴取得 (Trips)
+    Service->>DB: ピン留め取得 (PinnedLocations)
+    Service->>DB: 保存済みプラン取得 (Suggestions)
+    Service-->>Controller: マップデータ (JSON)
+    Controller-->>User: 地図描画 (Leaflet)
+
+    User->>Controller: 行きたい場所をピン留め (POST /map/pin)
+    Controller->>DB: PinnedLocation保存
+    DB-->>Controller: 完了
+    Controller-->>User: ピン表示更新 (📍)
+```
+
+```
+
 ```
