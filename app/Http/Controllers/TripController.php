@@ -62,10 +62,30 @@ class TripController extends Controller
                 'tags' => $trip->tags->map(fn($tag) => ['id' => $tag->id, 'name' => $tag->name]),
             ]);
 
+        // ------------------------------------
+        // ▼▼▼ あの日の思い出 (On This Day) ▼▼▼
+        // ------------------------------------
+        $today = \Carbon\Carbon::today();
+        $onThisDayTrips = Trip::query()
+            ->with('photos')
+            ->whereMonth('start_date', $today->month)
+            ->whereDay('start_date', $today->day)
+            ->whereYear('start_date', '!=', $today->year)  // 今年の旅行は除く（過去の思い出）
+            ->get()
+            ->map(fn($trip) => [
+                'id' => $trip->id,
+                'title' => $trip->title,
+                'prefecture' => $trip->prefecture,
+                'start_date' => $trip->start_date,
+                'years_ago' => $today->year - $trip->start_date->year,
+                'thumbnail' => $trip->photos->first() ? Storage::url($trip->photos->first()->path) : null,
+            ]);
+
         return Inertia::render('Trips/Index', [
             'trips' => $trips,
             'filters' => $request->all(),
             'tags' => Tag::all(),
+            'onThisDayTrips' => $onThisDayTrips,  // ビューに渡す
         ]);
     }
 

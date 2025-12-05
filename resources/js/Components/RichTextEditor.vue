@@ -15,9 +15,17 @@ const editorRef = ref(null);
 onMounted(() => {
     const element = editorRef.value;
 
-    // 初期値の設定
-    if (props.modelValue) {
-        element.editor.loadHTML(props.modelValue);
+    const initializeEditor = () => {
+        if (props.modelValue && element.editor) {
+            element.editor.loadHTML(props.modelValue);
+        }
+    };
+
+    // Trixが初期化されるのを待つ
+    if (element.editor) {
+        initializeEditor();
+    } else {
+        element.addEventListener("trix-initialize", initializeEditor);
     }
 
     // 変更の監視

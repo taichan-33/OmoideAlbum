@@ -98,3 +98,8 @@ Route::get('/ai-planner/{prefectureCode}', [App\Http\Controllers\AiPlannerContro
 Route::post('/ai-planner', [App\Http\Controllers\AiPlannerController::class, 'store'])
     ->name('ai-planner.store')
     ->middleware('auth');
+
+// Stats
+Route::get('/stats', [App\Http\Controllers\StatsController::class, 'index'])
+    ->name('stats.index')
+    ->middleware('auth');

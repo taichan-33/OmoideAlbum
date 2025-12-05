@@ -24,11 +24,13 @@
         "@inertiajs/vue3": "^2.2.19",
         "@vitejs/plugin-vue": "^6.0.2",
         "@vue-leaflet/vue-leaflet": "^0.10.1",
+        "chart.js": "^4.5.1",
         "leaflet": "^1.9.4",
         "lodash": "^4.17.21",
         "marked": "^17.0.1",
         "trix": "^2.1.15",
         "vue": "^3.5.25",
+        "vue-chartjs": "^5.3.3",
         "ziggy-js": "^2.6.0"
     }
 }

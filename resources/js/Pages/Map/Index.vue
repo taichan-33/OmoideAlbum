@@ -252,7 +252,7 @@ const getColor = (count) => {
 // Toggle Pin
 const togglePin = (code) => {
     // Only support pins for Japan for now as DB schema expects JP-xx
-    if (currentMap.value !== "JP") return;
+    // if (currentMap.value !== "JP") return; // Restriction removed for World Map support
 
     const pinInfo = props.pinnedLocations[code];
     const hasMe = pinInfo ? pinInfo.has_me : false;
@@ -798,8 +798,7 @@ const onEachFeature = (feature, layer) => {
                             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                             layer-type="base"
                             name="CartoDB Positron"
-                            attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors &copy; <a href='https://carto.com/attributions'>CARTO</a>"
-                        ></l-tile-layer>
+                        />
 
                         <!-- GeoJSON Layer -->
                         <l-geo-json
@@ -808,7 +807,92 @@ const onEachFeature = (feature, layer) => {
                                 style: styleFunction,
                                 onEachFeature: onEachFeature,
                             }"
-                        ></l-geo-json>
+                        />
+
+                        <!-- Markers for Photos -->
+                        <template
+                            v-for="(center, code) in prefectureCenters"
+                            :key="code"
+                        >
+                            <!-- Photo Marker -->
+                            <l-marker
+                                v-if="mapData[code] && mapData[code].thumbnail"
+                                :lat-lng="center"
+                            >
+                                <l-icon
+                                    :icon-size="[40, 40]"
+                                    :icon-anchor="[20, 20]"
+                                    class-name="custom-marker-icon"
+                                >
+                                    <div
+                                        class="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-gray-200 hover:scale-110 transition-transform duration-200 cursor-pointer"
+                                    >
+                                        <img
+                                            :src="mapData[code].thumbnail"
+                                            class="w-full h-full object-cover"
+                                            alt="Photo"
+                                        />
+                                    </div>
+                                </l-icon>
+                                <l-popup>
+                                    <div class="p-1 max-w-[200px]">
+                                        <img
+                                            :src="mapData[code].thumbnail"
+                                            class="w-full h-auto rounded-lg mb-2"
+                                            alt="Photo"
+                                        />
+                                        <div
+                                            class="text-center font-bold text-gray-700"
+                                        >
+                                            {{ prefectureNames[code] }}
+                                        </div>
+                                        <div
+                                            class="text-center text-xs text-gray-500"
+                                        >
+                                            {{ mapData[code].dates[0] }} 訪問
+                                        </div>
+                                    </div>
+                                </l-popup>
+                            </l-marker>
+
+                            <!-- Star Marker (for pinned locations without photos) -->
+                            <l-marker
+                                v-else-if="
+                                    pinnedLocations[code] &&
+                                    pinnedLocations[code].has_me
+                                "
+                                :lat-lng="center"
+                                @click="togglePin(code)"
+                            >
+                                <l-icon
+                                    :icon-size="[30, 30]"
+                                    :icon-anchor="[15, 15]"
+                                    class-name="custom-star-icon"
+                                >
+                                    <div
+                                        class="text-3xl leading-none drop-shadow-md filter"
+                                    >
+                                        ★
+                                    </div>
+                                </l-icon>
+                                <l-tooltip
+                                    :options="{
+                                        permanent: false,
+                                        direction: 'top',
+                                        offset: [0, -10],
+                                    }"
+                                >
+                                    <div class="text-center">
+                                        <div class="font-bold">
+                                            {{ prefectureNames[code] }}
+                                        </div>
+                                        <div class="text-xs text-amber-600">
+                                            行きたい場所
+                                        </div>
+                                    </div>
+                                </l-tooltip>
+                            </l-marker>
+                        </template>
 
                         <!-- Star Markers for Pinned Locations (Using v-for on pinnedLocations) -->
                         <!-- Star Markers for Pinned Locations (Using v-for on pinnedLocations) -->

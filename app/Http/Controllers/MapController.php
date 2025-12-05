@@ -22,7 +22,8 @@ class MapController extends Controller
         // tripsテーブルからデータを取得し、都道府県ごとにグループ化
         $trips = $user
             ->trips()
-            ->select('prefecture', 'start_date')
+            ->with('photos')  // Eager load photos
+            ->select('id', 'prefecture', 'start_date')  // Need 'id' for relation
             ->orderBy('start_date', 'asc')
             ->get();
 
@@ -48,6 +49,12 @@ class MapController extends Controller
                     // 訪問回数ベースならそのままでもOK。
                     // ここではシンプルに追加。
                     $mapData[$code]['dates'][] = $trip->start_date->format('Y/m/d');
+
+                    // Add thumbnail if available (use the first photo of the first trip to that location, or overwrite?)
+                    // Let's use the first photo found for that location.
+                    if (!isset($mapData[$code]['thumbnail']) && $trip->photos->isNotEmpty()) {
+                        $mapData[$code]['thumbnail'] = \Illuminate\Support\Facades\Storage::url($trip->photos->first()->path);
+                    }
                 }
             }
         }
@@ -88,7 +95,7 @@ class MapController extends Controller
     public function storePin(Request $request)
     {
         $request->validate([
-            'prefecture_code' => 'required|string|starts_with:JP-'
+            'prefecture_code' => 'required|string'  // Removed starts_with:JP- to allow ISO codes
         ]);
 
         DB::table('pinned_locations')->insertOrIgnore([
@@ -107,7 +114,7 @@ class MapController extends Controller
     public function destroyPin(Request $request)
     {
         $request->validate([
-            'prefecture_code' => 'required|string|starts_with:JP-'
+            'prefecture_code' => 'required|string'  // Removed starts_with:JP-
         ]);
 
         DB::table('pinned_locations')
@@ -123,6 +130,18 @@ class MapController extends Controller
      */
     private function convertPrefectureToCode(string $name): ?string
     {
-        return \App\Enums\Prefecture::fromName($name)?->value;
+        // Try to find in Enum first (Japan Prefectures)
+        $enumVal = \App\Enums\Prefecture::fromName($name)?->value;
+        if ($enumVal) {
+            return $enumVal;
+        }
+
+        // If not found, check if it looks like an ISO code (3 letters)
+        // This is a simple heuristic. You might want to validate against a list of countries if strictness is needed.
+        if (preg_match('/^[A-Z]{3}$/', $name)) {
+            return $name;
+        }
+
+        return null;
     }
 }
