@@ -197,7 +197,19 @@ const deleteComment = (commentId) => {
                                         d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                                     ></path>
                                 </svg>
-                                {{ trip.prefecture }}
+                                <div class="flex flex-wrap gap-1">
+                                    <span
+                                        v-for="pref in Array.isArray(
+                                            trip.prefecture
+                                        )
+                                            ? trip.prefecture
+                                            : [trip.prefecture]"
+                                        :key="pref"
+                                        class="bg-white/20 backdrop-blur-md px-2 py-0.5 rounded text-xs"
+                                    >
+                                        {{ pref }}
+                                    </span>
+                                </div>
                             </span>
                         </div>
                         <h1

@@ -112,7 +112,8 @@ class SuggestionController extends Controller
         foreach ($trips as $index => $trip) {
             $pastData .= ($index + 1) . '. ';
             $pastData .= 'タイトル: ' . $trip->title . ' | ';
-            $pastData .= '場所: ' . $trip->prefecture . ' | ';
+            $prefectureStr = is_array($trip->prefecture) ? implode(', ', $trip->prefecture) : $trip->prefecture;
+            $pastData .= '場所: ' . $prefectureStr . ' | ';
             $pastData .= '泊数: ' . $trip->nights . '泊 | ';
             if ($trip->tags->isNotEmpty()) {
                 $pastData .= 'タグ: ' . $trip->tags->pluck('name')->join(', ') . ' | ';
@@ -312,7 +313,8 @@ class SuggestionController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string',
-            'content' => 'required|string',
+            'title' => 'required|string',
+            'content' => 'required',  // string or array
             'accommodation' => 'nullable|string',
             'local_food' => 'nullable|string',
             'itinerary' => 'required|array',

@@ -33,7 +33,9 @@ class Suggestion extends Model
      */
     protected $casts = [
         // itinerary_data カラムを自動的に JSON (配列/オブジェクト) として扱う
+        // itinerary_data カラムを自動的に JSON (配列/オブジェクト) として扱う
         'itinerary_data' => 'array',
+        'content' => 'array',  // ★ contentもJSONとして扱う
     ];
 
     /**

@@ -108,7 +108,8 @@ class TripController extends Controller
         // 1. バリデーション（ルールを定義）
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'prefecture' => 'required|string|max:100',
+            'prefecture' => 'required|array',  // 配列に変更
+            'prefecture.*' => 'string|max:100',  // 各要素は文字列
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'nights' => 'required|integer|min:0',
@@ -236,7 +237,8 @@ class TripController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'prefecture' => 'required|string|max:255',
+            'prefecture' => 'required|array',  // 配列に変更
+            'prefecture.*' => 'string|max:100',  // 各要素は文字列
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'nights' => 'required|integer|min:0',

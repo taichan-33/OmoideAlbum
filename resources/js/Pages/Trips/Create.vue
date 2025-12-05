@@ -2,6 +2,7 @@
 import { useForm, Head, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import RichTextEditor from "@/Components/RichTextEditor.vue";
+import PrefectureSelector from "@/Components/PrefectureSelector.vue";
 
 const props = defineProps({
     tags: Array,
@@ -9,7 +10,7 @@ const props = defineProps({
 
 const form = useForm({
     title: "",
-    prefecture: "",
+    prefecture: [], // Array for multi-select
     start_date: "",
     end_date: "",
     nights: 0,
@@ -115,12 +116,8 @@ const submit = () => {
                                             >*</span
                                         ></label
                                     >
-                                    <input
+                                    <PrefectureSelector
                                         v-model="form.prefecture"
-                                        type="text"
-                                        class="w-full border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition py-3 px-4 bg-gray-50 focus:bg-white"
-                                        placeholder="例: 京都府"
-                                        required
                                     />
                                     <div
                                         v-if="form.errors.prefecture"

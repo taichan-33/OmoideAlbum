@@ -36,6 +36,7 @@ class Trip extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'prefecture' => 'array',
         'start_date' => 'date',
         'end_date' => 'date',
     ];

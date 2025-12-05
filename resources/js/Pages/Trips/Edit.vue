@@ -2,6 +2,7 @@
 import { useForm, Head, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import RichTextEditor from "@/Components/RichTextEditor.vue";
+import PrefectureSelector from "@/Components/PrefectureSelector.vue";
 
 const props = defineProps({
     trip: Object,
@@ -11,9 +12,11 @@ const props = defineProps({
 const form = useForm({
     _method: "PUT",
     title: props.trip.title,
-    prefecture: props.trip.prefecture,
-    start_date: props.trip.start_date,
-    end_date: props.trip.end_date,
+    prefecture: props.trip.prefecture || [], // Ensure array
+    start_date: props.trip.start_date
+        ? props.trip.start_date.substring(0, 10)
+        : "",
+    end_date: props.trip.end_date ? props.trip.end_date.substring(0, 10) : "",
     nights: props.trip.nights,
     description: props.trip.description,
     tags: props.trip.tag_ids,
@@ -117,11 +120,8 @@ const submit = () => {
                                             >*</span
                                         ></label
                                     >
-                                    <input
+                                    <PrefectureSelector
                                         v-model="form.prefecture"
-                                        type="text"
-                                        class="w-full border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent transition py-3 px-4 bg-gray-50 focus:bg-white"
-                                        required
                                     />
                                     <div
                                         v-if="form.errors.prefecture"

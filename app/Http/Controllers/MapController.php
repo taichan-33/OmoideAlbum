@@ -28,16 +28,27 @@ class MapController extends Controller
 
         $mapData = [];
         foreach ($trips as $trip) {
-            $code = $this->convertPrefectureToCode($trip->prefecture);
-            if ($code) {
-                if (!isset($mapData[$code])) {
-                    $mapData[$code] = [
-                        'count' => 0,
-                        'dates' => []
-                    ];
+            // prefectureは配列 (Tripモデルのcastsにより)
+            $prefectures = is_array($trip->prefecture) ? $trip->prefecture : [$trip->prefecture];
+
+            foreach ($prefectures as $prefName) {
+                if (!is_string($prefName))
+                    continue;
+
+                $code = $this->convertPrefectureToCode($prefName);
+                if ($code) {
+                    if (!isset($mapData[$code])) {
+                        $mapData[$code] = [
+                            'count' => 0,
+                            'dates' => []
+                        ];
+                    }
+                    $mapData[$code]['count']++;
+                    // 同じ日付が重複しないようにチェックしても良いが、
+                    // 訪問回数ベースならそのままでもOK。
+                    // ここではシンプルに追加。
+                    $mapData[$code]['dates'][] = $trip->start_date->format('Y/m/d');
                 }
-                $mapData[$code]['count']++;
-                $mapData[$code]['dates'][] = $trip->start_date->format('Y/m/d');
             }
         }
 

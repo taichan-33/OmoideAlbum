@@ -113,6 +113,9 @@ const toggleDetails = (id) => {
 // Parse Content (JSON or String)
 const parseContent = (content) => {
     if (!content) return null;
+    if (typeof content === "object") {
+        return { type: "json", data: content };
+    }
     try {
         const parsed = JSON.parse(content);
         if (typeof parsed === "object" && parsed !== null) {
