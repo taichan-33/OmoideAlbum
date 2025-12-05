@@ -120,3 +120,16 @@ Route::put('/packing-items/{item}', [App\Http\Controllers\PackingItemController:
 Route::delete('/packing-items/{item}', [App\Http\Controllers\PackingItemController::class, 'destroy'])
     ->name('packing-items.destroy')
     ->middleware('auth');
+
+// Notifications
+Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])
+    ->name('notifications.index')
+    ->middleware('auth');
+
+Route::post('/notifications/read-all', [App\Http\Controllers\NotificationController::class, 'readAll'])
+    ->name('notifications.readAll')
+    ->middleware('auth');
+
+Route::post('/notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'read'])
+    ->name('notifications.read')
+    ->middleware('auth');

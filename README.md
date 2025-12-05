@@ -1,61 +1,157 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 夫婦思い出アルバム (Omoide Album) 📸
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+夫婦の旅行の思い出を記録し、共有し、次の旅を計画するための Web アプリケーションです。
+写真の保存、地図での制覇記録、AI によるプラン提案、持ち物リストの管理など、旅の「前・中・後」すべてをサポートします。
 
-## About Laravel
+## 🚀 主な機能
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### 1. 旅行記録 (Memories)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+-   旅行のタイトル、日程、場所、詳細を記録
+-   写真のアップロードとギャラリー表示
+-   タグ付けによる整理（「温泉」「グルメ」など）
+-   **あの日の思い出**: 1 年前の今日の旅行を自動でリマインド
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 2. 制覇マップ (Conquest Map)
 
-## Learning Laravel
+-   **日本地図**: 訪問済みの都道府県を塗りつぶし
+-   **世界地図**: 訪問済みの国を塗りつぶし
+-   **写真マップ**: 地図上に訪問地で撮影した写真を表示
+-   **ピン留め**: 行きたい場所をピン留めし、夫婦で共有（「行きたい！」「私も！」）
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 3. AI 旅行プランナー (AI Planner)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+-   **チャット相談**: AI に行き先やプランを相談
+-   **プラン提案**: 構造化された旅行プラン（スポット、時間、予算）を提案
+-   **保存機能**: 気に入ったプランを保存して後で見返すことが可能
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 4. 旅のしおり (Packing List)
 
-## Laravel Sponsors
+-   **持ち物チェックリスト**: 旅行ごとの持ち物管理
+-   **テンプレート**: 「基本セット」「温泉セット」「海外旅行セット」などから一括追加
+-   **リアルタイム共有**: 相手がチェックを入れると即座に反映
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 5. アクティビティログ (Notifications)
 
-### Premium Partners
+-   **アプリ内通知**: パートナーが写真をアップロードしたり、持ち物を追加した際に通知
+-   **リアルタイム性**: 画面を開いていれば自動で通知バッジが更新されます
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 🛠 技術スタック
 
-## Contributing
+### Backend
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+-   **Framework**: Laravel 11
+-   **Database**: MySQL 8.0+
+-   **Auth**: Laravel Breeze (Session based)
+-   **AI**: Gemini API (via `google-gemini-php/client`)
 
-## Code of Conduct
+### Frontend
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+-   **Framework**: Vue.js 3 (Composition API)
+-   **Routing**: Inertia.js (Monolith structure)
+-   **Styling**: Tailwind CSS
+-   **Map**: Leaflet.js (via `vue-leaflet`)
+-   **Icons**: Bootstrap Icons
 
-## Security Vulnerabilities
+## 💻 開発環境のセットアップ
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 前提条件
 
-## License
+-   PHP 8.2+
+-   Composer
+-   Node.js 18+
+-   MySQL 8.0+
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### インストール手順
+
+1. **リポジトリのクローン**
+
+    ```bash
+    git clone <repository-url>
+    cd omoide-album
+    ```
+
+2. **依存関係のインストール**
+
+    ```bash
+    composer install
+    npm install
+    ```
+
+3. **環境変数の設定**
+
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+
+    `.env` ファイルを開き、データベース接続情報と Google Gemini API キーを設定してください。
+
+    ```env
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=omoide_album
+    DB_USERNAME=root
+    DB_PASSWORD=
+
+    GEMINI_API_KEY=your-api-key-here
+    ```
+
+4. **データベースのマイグレーション**
+
+    ```bash
+    php artisan migrate
+    ```
+
+5. **開発サーバーの起動**
+
+    ```bash
+    # ターミナル1
+    php artisan serve
+
+    # ターミナル2
+    npm run dev
+    ```
+
+## ☁️ Cloud Run デプロイガイド
+
+本番環境（Google Cloud Run）へデプロイする際の重要事項です。
+Cloud Run はステートレス（サーバーの状態を保持しない）な環境であるため、以下の設定が必須となります。
+
+### ⚠️ 必須環境変数
+
+以下の環境変数を Cloud Run のデプロイ設定に必ず含めてください。
+
+| 変数名           | 設定値                               | 理由                                                                                 |
+| :--------------- | :----------------------------------- | :----------------------------------------------------------------------------------- |
+| `SESSION_DRIVER` | `database`                           | **必須**。ファイル保存だとデプロイやスケーリングのたびにログアウトされてしまいます。 |
+| `CACHE_DRIVER`   | `database`                           | **推奨**。キャッシュをインスタンス間で共有し、通知機能などを安定させます。           |
+| `APP_TIMEZONE`   | `Asia/Tokyo`                         | 通知の「◯ 分前」や日付表示を日本時間に合わせるため。                                 |
+| `DB_SOCKET`      | `/cloudsql/INSTANCE_CONNECTION_NAME` | Cloud SQL への接続用（Unix Socket 使用時）。                                         |
+
+### デプロイコマンド例
+
+```bash
+gcloud run deploy omoide-album \
+  --image gcr.io/PROJECT_ID/IMAGE_NAME \
+  --platform managed \
+  --region asia-northeast1 \
+  --allow-unauthenticated \
+  --set-env-vars="APP_ENV=production,APP_DEBUG=false,APP_KEY=...,DB_CONNECTION=mysql,DB_SOCKET=...,DB_DATABASE=...,DB_USERNAME=...,DB_PASSWORD=...,SESSION_DRIVER=database,CACHE_DRIVER=database,APP_TIMEZONE=Asia/Tokyo"
+```
+
+### マイグレーション
+
+Cloud Run へのデプロイ時、または Cloud Build のステップ内でマイグレーションを実行してください。
+※ `sessions` テーブルと `cache` テーブルは、初期マイグレーションに含まれているため、`php artisan migrate` を実行すれば自動的に作成されます。
+
+```bash
+php artisan migrate --force
+```
+
+## 📝 開発者向けメモ
+
+-   **通知機能**: `database` ドライバーを使用しています。ポーリング間隔は `NotificationBell.vue` で 30 秒に設定されています。
+-   **地図機能**: 国土地理院タイル（日本）と OpenStreetMap（世界）を切り替えて使用しています。
+-   **AI**: Gemini Pro モデルを使用しています。プロンプトは `SuggestionController` 内で定義されています。

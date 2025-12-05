@@ -261,6 +261,16 @@ class TripController extends Controller
             }
         }
 
+        // 通知
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $others = \App\Models\User::where('id', '!=', $user->id)->get();
+        \Illuminate\Support\Facades\Notification::send($others, new \App\Notifications\TripUpdated(
+            $trip,
+            "{$user->name}さんが旅行「{$trip->title}」を更新しました",
+            route('trips.show', $trip->id),
+            '✏️'
+        ));
+
         return redirect()
             ->route('trips.show', $trip)  // 編集後は詳細ページへリダイレクト
             ->with('success', '旅行の思い出を更新しました！');

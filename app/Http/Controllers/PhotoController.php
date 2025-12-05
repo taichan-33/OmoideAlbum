@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Trip; // Tripモデルを使う
-use Illuminate\Http\Request;
+use App\Models\Trip;  // Tripモデルを使う
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PhotoController extends Controller
@@ -18,7 +18,7 @@ class PhotoController extends Controller
 
         // 2. バリデーション
         $validated = $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // 必須、画像ファイル、5MBまで
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',  // 必須、画像ファイル、5MBまで
             'caption' => 'nullable|string|max:1000',
         ]);
 
@@ -32,8 +32,19 @@ class PhotoController extends Controller
             'caption' => $validated['caption'],
         ]);
 
+        // 通知
+        $user = Auth::user();
+        $others = \App\Models\User::where('id', '!=', $user->id)->get();
+        \Illuminate\Support\Facades\Notification::send($others, new \App\Notifications\TripUpdated(
+            $trip,
+            "{$user->name}さんが写真をアップロードしました",
+            route('trips.show', $trip->id),
+            '📷'
+        ));
+
         // 5. 元の旅行詳細ページにリダイレクト
-        return redirect()->route('trips.show', $trip)
+        return redirect()
+            ->route('trips.show', $trip)
             ->with('success', '写真を追加しました！');
     }
 }

@@ -19,6 +19,17 @@ class PackingItemController extends Controller
             'name' => $request->name,
         ]);
 
+        // 通知
+        $user = \Illuminate\Support\Facades\Auth::user();
+        // 自分以外の全ユーザーに通知
+        $others = \App\Models\User::where('id', '!=', $user->id)->get();
+        \Illuminate\Support\Facades\Notification::send($others, new \App\Notifications\TripUpdated(
+            $trip,
+            "{$user->name}さんが持ち物「{$request->name}」を追加しました",
+            route('trips.show', $trip->id),
+            '🧳'
+        ));
+
         return Redirect::back();
     }
 

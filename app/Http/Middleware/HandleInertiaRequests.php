@@ -39,6 +39,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+                'unreadNotificationsCount' => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             ],
             'prefectures' => collect(\App\Enums\Prefecture::cases())->map(fn($p) => $p->label())->values()->toArray(),
         ];

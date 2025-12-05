@@ -2,6 +2,8 @@
 import { ref } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 
+import NotificationBell from "@/Components/NotificationBell.vue";
+
 const showingNavigationDropdown = ref(false);
 const user = usePage().props.auth.user;
 
@@ -70,6 +72,11 @@ const logout = () => {
                     </div>
 
                     <div class="hidden sm:flex sm:items-center sm:ml-6">
+                        <!-- Notification Bell -->
+                        <div class="mr-4">
+                            <NotificationBell />
+                        </div>
+
                         <div class="ml-3 relative">
                             <div v-if="user" class="relative group">
                                 <button
