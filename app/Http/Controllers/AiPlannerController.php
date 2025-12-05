@@ -113,7 +113,15 @@ class AiPlannerController extends Controller
                 {
                   "type": "plan",
                   "title": "プランのタイトル（例：〇〇満喫1泊2日の旅）",
-                  "content": "プランの概要や魅力（Markdown可）",
+                  "content": {
+                    "title": "提案のキャッチコピー（例：夫婦でゆったり温泉旅）",
+                    "description": "提案の導入文や全体的な説明（Markdown可）",
+                    "points": [
+                      { "title": "ポイント1のタイトル", "description": "ポイント1の詳細説明" },
+                      { "title": "ポイント2のタイトル", "description": "ポイント2の詳細説明" },
+                      { "title": "ポイント3のタイトル", "description": "ポイント3の詳細説明" }
+                    ]
+                  },
                   "accommodation": "おすすめの宿泊エリアや施設（URLがあればMarkdownリンクで）",
                   "local_food": "おすすめのグルメ（URLがあればMarkdownリンクで）",
                   "itinerary": [

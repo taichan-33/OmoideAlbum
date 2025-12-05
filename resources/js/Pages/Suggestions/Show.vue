@@ -33,12 +33,26 @@ const formatTextWithLinks = (text) => {
     // 2. 改行を <br> に変換
     formatted = formatted.replace(/\n/g, "<br>");
 
-    // 3. リスト記号（・、-、*）を箇条書きスタイルに変換
-    // 行頭の記号を検出して、インデントとアイコンを付ける
+    // 3. 見出しの整形（✨などの絵文字で終わる行、または特定のキーワードで始まる行）
+    formatted = formatted.replace(
+        /(?:^|<br>)(.*?(?:✨|💡|📍|🗓️|♨️|🍷))(?=<br>|$)/g,
+        '<div class="font-bold text-indigo-800 mt-4 mb-2 text-base border-b-2 border-indigo-100 pb-1 inline-block">$1</div>'
+    );
+
+    formatted = formatted.replace(
+        /(?:^|<br>)(?:■|●)?\s*(ポイント|推奨|主な観光|モデル日程|なぜこのプラン|提案の理由).*?(?=<br>|$)/g,
+        (match) => {
+            // <br>が含まれている場合は除去してdivでラップ
+            const content = match.replace(/^<br>/, "");
+            return `<div class="font-bold text-indigo-800 mt-4 mb-2 text-base border-b-2 border-indigo-100 pb-1 inline-block">${content}</div>`;
+        }
+    );
+
+    // 4. リスト記号（・、-、*）を箇条書きスタイルに変換
     formatted = formatted.replace(
         /(?:<br>|^)(?:・|-|\*)\s*(.*?)(?=<br>|$)/g,
         (match, content) => {
-            return `<div class="flex items-start gap-2 mt-2 mb-1 pl-2"><span class="text-indigo-400 mt-1.5 text-[10px]">●</span><span>${content}</span></div>`;
+            return `<div class="flex items-start gap-2 mt-1 mb-1 pl-2"><span class="text-indigo-400 mt-1.5 text-[10px] shrink-0">●</span><span>${content}</span></div>`;
         }
     );
 
@@ -49,6 +63,19 @@ const formatTextWithLinks = (text) => {
     );
 
     return formatted;
+};
+// Parse Content (JSON or String)
+const parseContent = (content) => {
+    if (!content) return null;
+    try {
+        const parsed = JSON.parse(content);
+        if (typeof parsed === "object" && parsed !== null) {
+            return { type: "json", data: parsed };
+        }
+    } catch (e) {
+        // Not JSON, treat as string
+    }
+    return { type: "text", content: content };
 };
 </script>
 
@@ -99,186 +126,272 @@ const formatTextWithLinks = (text) => {
         </template>
 
         <div class="py-12 bg-gray-50 min-h-screen">
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                <!-- Hero Card -->
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div
-                    class="bg-white rounded-[2rem] shadow-xl overflow-hidden mb-8 relative border border-gray-100"
+                    class="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100"
                 >
+                    <!-- Hero Section -->
                     <div
-                        class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-32 opacity-90"
-                    ></div>
-                    <div class="px-8 pb-10 -mt-12 relative">
-                        <div class="flex justify-between items-end mb-6">
+                        class="bg-gradient-to-br from-indigo-600 to-purple-700 p-10 md:p-16 text-center text-white relative overflow-hidden"
+                    >
+                        <div
+                            class="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"
+                        ></div>
+                        <div
+                            class="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"
+                        ></div>
+
+                        <div class="relative z-10">
+                            <div class="flex justify-center gap-2 mb-6">
+                                <span
+                                    class="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full"
+                                >
+                                    {{
+                                        new Date(
+                                            suggestion.created_at
+                                        ).toLocaleDateString()
+                                    }}
+                                </span>
+                                <span
+                                    class="bg-yellow-400/20 backdrop-blur-sm text-yellow-300 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1"
+                                >
+                                    <span>★</span>
+                                    {{ suggestion.recommendation_score }}.0
+                                </span>
+                            </div>
+                            <h1
+                                class="text-3xl md:text-5xl font-bold mb-6 tracking-tight leading-tight"
+                            >
+                                {{ suggestion.title }}
+                            </h1>
+
+                            <!-- Structured JSON Description (Hero) -->
                             <div
-                                class="bg-white p-4 rounded-2xl shadow-lg text-center border border-gray-100"
+                                v-if="
+                                    parseContent(suggestion.content)?.type ===
+                                    'json'
+                                "
+                                class="text-lg md:text-xl text-indigo-100 max-w-2xl mx-auto leading-relaxed"
                             >
                                 <div
-                                    class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1"
+                                    v-if="
+                                        parseContent(suggestion.content).data
+                                            .title
+                                    "
+                                    class="font-bold mb-2 text-white"
                                 >
-                                    おすすめ度
+                                    {{
+                                        parseContent(suggestion.content).data
+                                            .title
+                                    }}
                                 </div>
                                 <div
-                                    class="text-3xl font-black text-indigo-600 leading-none"
+                                    v-html="
+                                        formatTextWithLinks(
+                                            parseContent(suggestion.content)
+                                                .data.description
+                                        )
+                                    "
+                                ></div>
+                            </div>
+
+                            <!-- Legacy Text Description (Hero) -->
+                            <div
+                                v-else
+                                class="text-lg md:text-xl text-indigo-100 max-w-2xl mx-auto leading-relaxed"
+                                v-html="formatTextWithLinks(suggestion.content)"
+                            ></div>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="p-8 md:p-12 bg-gray-50/50">
+                        <!-- Info Grid -->
+                        <div
+                            class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12"
+                        >
+                            <div
+                                class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm"
+                            >
+                                <h4
+                                    class="font-bold text-gray-900 mb-4 flex items-center gap-2"
                                 >
-                                    {{ suggestion.recommendation_score
-                                    }}<span class="text-sm text-gray-300 ml-0.5"
-                                        >/5</span
-                                    >
-                                </div>
+                                    <span>🏨</span> おすすめの宿
+                                </h4>
+                                <div
+                                    class="text-gray-600 leading-relaxed space-y-2"
+                                    v-html="
+                                        formatTextWithLinks(
+                                            suggestion.accommodation
+                                        )
+                                    "
+                                ></div>
+                            </div>
+                            <div
+                                class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm"
+                            >
+                                <h4
+                                    class="font-bold text-gray-900 mb-4 flex items-center gap-2"
+                                >
+                                    <span>🍽️</span> 名産・グルメ
+                                </h4>
+                                <div
+                                    class="text-gray-600 leading-relaxed space-y-2"
+                                    v-html="
+                                        formatTextWithLinks(
+                                            suggestion.local_food
+                                        )
+                                    "
+                                ></div>
                             </div>
                         </div>
-                        <h1
-                            class="text-3xl md:text-4xl font-black text-gray-900 mb-6 leading-tight tracking-tight"
-                        >
-                            {{ suggestion.title }}
-                        </h1>
-                        <div
-                            class="prose prose-lg text-gray-600 max-w-none leading-relaxed"
-                            v-html="formatTextWithLinks(suggestion.content)"
-                        ></div>
-                    </div>
-                </div>
 
-                <!-- Highlights Grid -->
-                <div class="grid md:grid-cols-2 gap-6 mb-12">
-                    <!-- Accommodation Card -->
-                    <div
-                        v-if="suggestion.accommodation"
-                        class="bg-white rounded-[2rem] shadow-lg p-8 border-t-4 border-emerald-400 hover:shadow-xl transition-shadow"
-                    >
-                        <h3
-                            class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3"
-                        >
-                            <span
-                                class="bg-emerald-100 text-emerald-600 p-3 rounded-xl text-2xl"
-                                >🏨</span
-                            >
-                            宿泊おすすめ
-                        </h3>
+                        <!-- Structured Reason Points -->
                         <div
-                            class="text-gray-700 leading-relaxed space-y-2"
-                            v-html="
-                                formatTextWithLinks(suggestion.accommodation)
+                            v-if="
+                                parseContent(suggestion.content)?.type ===
+                                    'json' &&
+                                parseContent(suggestion.content).data.points
                             "
-                        ></div>
-                    </div>
-
-                    <!-- Gourmet Card -->
-                    <div
-                        v-if="suggestion.local_food"
-                        class="bg-white rounded-[2rem] shadow-lg p-8 border-t-4 border-orange-400 hover:shadow-xl transition-shadow"
-                    >
-                        <h3
-                            class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3"
+                            class="mb-12"
                         >
-                            <span
-                                class="bg-orange-100 text-orange-600 p-3 rounded-xl text-2xl"
-                                >🍽️</span
-                            >
-                            グルメ情報
-                        </h3>
-                        <div
-                            class="text-gray-700 leading-relaxed space-y-2"
-                            v-html="formatTextWithLinks(suggestion.local_food)"
-                        ></div>
-                    </div>
-                </div>
-
-                <!-- Itinerary -->
-                <div
-                    v-if="suggestion.itinerary_data"
-                    class="bg-white rounded-[2rem] shadow-xl p-8 md:p-10 mb-12 border border-gray-100"
-                >
-                    <h3
-                        class="text-2xl font-bold text-gray-900 mb-10 flex items-center gap-3"
-                    >
-                        <span
-                            class="bg-indigo-100 text-indigo-600 p-2 rounded-lg"
-                            >🗓️</span
-                        >
-                        モデルコース
-                    </h3>
-
-                    <div class="space-y-12">
-                        <div
-                            v-for="(day, index) in suggestion.itinerary_data"
-                            :key="index"
-                            class="relative pl-8 md:pl-12 border-l-2 border-indigo-100"
-                        >
-                            <div
-                                class="absolute -left-3 top-0 w-6 h-6 bg-indigo-500 rounded-full border-4 border-white shadow-sm"
-                            ></div>
-
                             <h4
-                                class="font-bold text-xl text-indigo-900 mb-6 flex items-center gap-2"
+                                class="font-bold text-gray-900 mb-6 flex items-center gap-2 text-xl"
                             >
-                                <span class="text-indigo-400">Day</span>
-                                {{ day.day }}
+                                <span>✨</span> おすすめポイント
                             </h4>
-
-                            <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div
-                                    v-for="(spot, sIndex) in day.spots"
-                                    :key="sIndex"
-                                    class="group bg-gray-50 rounded-2xl p-5 flex gap-5 hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-gray-100"
+                                    v-for="(point, pIndex) in parseContent(
+                                        suggestion.content
+                                    ).data.points"
+                                    :key="pIndex"
+                                    class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition"
                                 >
                                     <div
-                                        class="font-mono text-indigo-500 font-bold w-16 shrink-0 pt-1 text-lg"
+                                        class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg mb-4"
                                     >
-                                        {{ spot.time }}
+                                        {{ pIndex + 1 }}
                                     </div>
-                                    <div class="flex-1">
-                                        <div
-                                            class="font-bold text-gray-900 text-lg flex items-center flex-wrap gap-2 mb-2"
-                                        >
-                                            {{ spot.name }}
-                                            <a
-                                                v-if="spot.url"
-                                                :href="spot.url"
-                                                target="_blank"
-                                                class="inline-flex items-center gap-1 px-3 py-1 bg-white border border-blue-100 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm"
+                                    <h5
+                                        class="font-bold text-gray-900 mb-2 text-lg"
+                                    >
+                                        {{ point.title }}
+                                    </h5>
+                                    <p
+                                        class="text-gray-600 leading-relaxed text-sm"
+                                    >
+                                        {{ point.description }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Itinerary Timeline -->
+                        <div
+                            class="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100"
+                        >
+                            <h4
+                                class="font-bold text-gray-900 mb-8 flex items-center gap-2 text-xl"
+                            >
+                                <span>🗓️</span> モデル日程
+                            </h4>
+                            <div class="relative">
+                                <!-- Vertical Line -->
+                                <div
+                                    class="absolute left-4 top-4 bottom-4 w-0.5 bg-indigo-100"
+                                ></div>
+
+                                <div class="space-y-12">
+                                    <div
+                                        v-for="(
+                                            day, dIndex
+                                        ) in suggestion.itinerary_data"
+                                        :key="dIndex"
+                                        class="relative pl-10"
+                                    >
+                                        <!-- Day Header -->
+                                        <div class="mb-6">
+                                            <div
+                                                class="absolute left-0 top-0 w-9 h-9 bg-indigo-500 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm z-10 font-bold text-sm"
                                             >
-                                                <span>🔗</span> 詳細
-                                            </a>
+                                                {{ day.day }}
+                                            </div>
+                                            <h5
+                                                class="font-bold text-indigo-900 text-xl ml-2"
+                                            >
+                                                Day {{ day.day }}
+                                            </h5>
                                         </div>
-                                        <div
-                                            class="text-gray-600 leading-relaxed"
-                                        >
-                                            {{ spot.description }}
+
+                                        <!-- Loop through Spots -->
+                                        <div class="space-y-6">
+                                            <div
+                                                v-for="(
+                                                    spot, sIndex
+                                                ) in day.spots"
+                                                :key="sIndex"
+                                                class="bg-gray-50 rounded-2xl p-5 border border-gray-200 hover:border-indigo-200 transition group"
+                                            >
+                                                <div
+                                                    class="flex flex-col md:flex-row md:justify-between md:items-start gap-2"
+                                                >
+                                                    <div
+                                                        class="font-bold text-gray-900 text-lg flex items-center gap-3"
+                                                    >
+                                                        <span
+                                                            class="text-indigo-600 bg-indigo-50 px-2 py-1 rounded text-sm font-mono"
+                                                            >{{
+                                                                spot.time
+                                                            }}</span
+                                                        >
+                                                        {{ spot.name }}
+                                                    </div>
+                                                    <a
+                                                        v-if="spot.url"
+                                                        :href="spot.url"
+                                                        target="_blank"
+                                                        class="text-sm text-white bg-indigo-500 hover:bg-indigo-600 px-4 py-1.5 rounded-full font-bold transition-colors shadow-sm opacity-0 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 duration-200"
+                                                    >
+                                                        公式サイト &rarr;
+                                                    </a>
+                                                </div>
+                                                <div
+                                                    class="text-gray-600 mt-2 leading-relaxed"
+                                                >
+                                                    {{ spot.description }}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Bottom Actions -->
-                <div class="flex justify-center pb-12">
-                    <button
-                        @click="toggleStatus"
-                        class="group relative w-full md:w-auto px-10 py-5 rounded-full text-xl font-bold transition-all transform hover:-translate-y-1 shadow-xl hover:shadow-2xl flex items-center justify-center gap-4 overflow-hidden"
-                        :class="
-                            suggestion.is_visited
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-green-200'
-                                : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-indigo-200'
-                        "
-                    >
-                        <div
-                            class="absolute inset-0 bg-white/20 group-hover:bg-white/10 transition-colors"
-                        ></div>
-                        <span
-                            v-if="suggestion.is_visited"
-                            class="text-3xl relative z-10"
-                            >✅</span
+                    <!-- Footer Actions -->
+                    <div class="bg-gray-50 p-8 flex justify-center">
+                        <button
+                            @click="toggleStatus"
+                            class="w-full md:w-auto px-8 py-4 rounded-full text-lg font-bold transition-all flex items-center justify-center gap-3 shadow-lg transform hover:-translate-y-1"
+                            :class="
+                                suggestion.is_visited
+                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-green-200'
+                                    : 'bg-gradient-to-r from-gray-700 to-gray-900 text-white hover:shadow-gray-300'
+                            "
                         >
-                        <span v-else class="text-3xl relative z-10">📍</span>
-                        <span class="relative z-10">{{
-                            suggestion.is_visited
-                                ? "行った（思い出）にする"
-                                : "行った（思い出）にする"
-                        }}</span>
-                    </button>
+                            <span v-if="suggestion.is_visited" class="text-2xl"
+                                >✅</span
+                            >
+                            <span v-else class="text-2xl">📍</span>
+                            <span v-if="suggestion.is_visited"
+                                >この場所は「行った（思い出）」リストに入っています</span
+                            >
+                            <span v-else
+                                >この場所を「行った（思い出）」にする</span
+                            >
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -66,15 +66,30 @@ const formatTextWithLinks = (text) => {
     // 2. 改行を <br> に変換
     formatted = formatted.replace(/\n/g, "<br>");
 
-    // 3. リスト記号（・、-、*）を箇条書きスタイルに変換
+    // 3. 見出しの整形（✨などの絵文字で終わる行、または特定のキーワードで始まる行）
     formatted = formatted.replace(
-        /(?:<br>|^)(?:・|-|\*)\s*(.*?)(?=<br>|$)/g,
-        (match, content) => {
-            return `<div class="flex items-start gap-2 mt-2 mb-1 pl-2"><span class="text-indigo-400 mt-1.5 text-[10px]">●</span><span>${content}</span></div>`;
+        /(?:^|<br>)(.*?(?:✨|💡|📍|🗓️|♨️|🍷))(?=<br>|$)/g,
+        '<div class="font-bold text-indigo-800 mt-4 mb-2 text-base border-b-2 border-indigo-100 pb-1 inline-block">$1</div>'
+    );
+
+    formatted = formatted.replace(
+        /(?:^|<br>)(?:■|●)?\s*(ポイント|推奨|主な観光|モデル日程|なぜこのプラン|提案の理由).*?(?=<br>|$)/g,
+        (match) => {
+            // <br>が含まれている場合は除去してdivでラップ
+            const content = match.replace(/^<br>/, "");
+            return `<div class="font-bold text-indigo-800 mt-4 mb-2 text-base border-b-2 border-indigo-100 pb-1 inline-block">${content}</div>`;
         }
     );
 
-    // 4. 【】で囲まれた部分を強調
+    // 4. リスト記号（・、-、*）を箇条書きスタイルに変換
+    formatted = formatted.replace(
+        /(?:<br>|^)(?:・|-|\*)\s*(.*?)(?=<br>|$)/g,
+        (match, content) => {
+            return `<div class="flex items-start gap-2 mt-1 mb-1 pl-2"><span class="text-indigo-400 mt-1.5 text-[10px] shrink-0">●</span><span>${content}</span></div>`;
+        }
+    );
+
+    // 5. 【】で囲まれた部分を強調
     formatted = formatted.replace(
         /【(.*?)】/g,
         '<span class="font-bold text-indigo-700 bg-indigo-50 px-1 rounded mx-1">$1</span>'
@@ -94,6 +109,19 @@ const deleteSuggestion = (id) => {
 const activeSuggestion = ref(null);
 const toggleDetails = (id) => {
     activeSuggestion.value = activeSuggestion.value === id ? null : id;
+};
+// Parse Content (JSON or String)
+const parseContent = (content) => {
+    if (!content) return null;
+    try {
+        const parsed = JSON.parse(content);
+        if (typeof parsed === "object" && parsed !== null) {
+            return { type: "json", data: parsed };
+        }
+    } catch (e) {
+        // Not JSON, treat as string
+    }
+    return { type: "text", content: content };
 };
 </script>
 
@@ -212,11 +240,11 @@ const toggleDetails = (id) => {
             </div>
 
             <!-- Suggestions List -->
-            <div v-if="suggestions.length" class="space-y-6">
+            <div v-if="suggestions.length" class="space-y-12">
                 <div
-                    v-for="suggestion in suggestions"
+                    v-for="(suggestion, index) in suggestions"
                     :key="suggestion.id"
-                    class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition hover:shadow-md"
+                    class="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100 transition hover:shadow-2xl"
                 >
                     <!-- Header (Click to expand) -->
                     <div
@@ -357,9 +385,13 @@ const toggleDetails = (id) => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Info Grid -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Info Grid -->
+                        <div class="p-8 bg-gray-50/50">
+                            <div
+                                class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"
+                            >
                                 <div
                                     class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm"
                                 >
@@ -396,7 +428,7 @@ const toggleDetails = (id) => {
                                 </div>
                             </div>
 
-                            <!-- Content -->
+                            <!-- Content (Reason) -->
                             <div
                                 class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm"
                             >
@@ -405,14 +437,85 @@ const toggleDetails = (id) => {
                                 >
                                     <span>📝</span> 提案の理由
                                 </h4>
+
+                                <!-- Structured JSON Content -->
                                 <div
+                                    v-if="
+                                        parseContent(suggestion.content)
+                                            ?.type === 'json'
+                                    "
+                                    class="space-y-6"
+                                >
+                                    <div
+                                        v-if="
+                                            parseContent(suggestion.content)
+                                                .data.title
+                                        "
+                                        class="font-bold text-lg text-indigo-900 border-l-4 border-indigo-500 pl-3"
+                                    >
+                                        {{
+                                            parseContent(suggestion.content)
+                                                .data.title
+                                        }}
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            parseContent(suggestion.content)
+                                                .data.description
+                                        "
+                                        class="text-gray-600 leading-relaxed"
+                                        v-html="
+                                            formatTextWithLinks(
+                                                parseContent(suggestion.content)
+                                                    .data.description
+                                            )
+                                        "
+                                    ></div>
+
+                                    <div
+                                        v-if="
+                                            parseContent(suggestion.content)
+                                                .data.points
+                                        "
+                                        class="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                    >
+                                        <div
+                                            v-for="(
+                                                point, pIndex
+                                            ) in parseContent(
+                                                suggestion.content
+                                            ).data.points"
+                                            :key="pIndex"
+                                            class="bg-indigo-50 rounded-xl p-4"
+                                        >
+                                            <h5
+                                                class="font-bold text-indigo-800 mb-2 text-sm flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="bg-white text-indigo-600 rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-sm"
+                                                    >{{ pIndex + 1 }}</span
+                                                >
+                                                {{ point.title }}
+                                            </h5>
+                                            <p
+                                                class="text-sm text-gray-600 leading-relaxed"
+                                            >
+                                                {{ point.description }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Legacy Text Content -->
+                                <div
+                                    v-else
                                     class="prose max-w-none text-gray-600 leading-relaxed"
                                     v-html="
                                         formatTextWithLinks(suggestion.content)
                                     "
                                 ></div>
                             </div>
-
                             <!-- Delete -->
                             <div class="flex justify-end pt-4">
                                 <button
@@ -424,6 +527,7 @@ const toggleDetails = (id) => {
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
                                     >
                                         <path
                                             stroke-linecap="round"
