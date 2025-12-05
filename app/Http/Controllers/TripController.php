@@ -66,11 +66,8 @@ class TripController extends Controller
         // ▼▼▼ あの日の思い出 (On This Day) ▼▼▼
         // ------------------------------------
         $today = \Carbon\Carbon::today();
-        $onThisDayTrips = Trip::query()
+        $onThisDayTrips = Trip::onThisDay()
             ->with('photos')
-            ->whereMonth('start_date', $today->month)
-            ->whereDay('start_date', $today->day)
-            ->whereYear('start_date', '!=', $today->year)  // 今年の旅行は除く（過去の思い出）
             ->get()
             ->map(fn($trip) => [
                 'id' => $trip->id,

@@ -9,6 +9,7 @@ const props = defineProps({
 
 const newItemName = ref("");
 const isAdding = ref(false);
+const isDropdownOpen = ref(false);
 
 const form = useForm({
     name: "",
@@ -60,6 +61,9 @@ const addFromTemplate = (template) => {
         route("packing-items.store-batch", props.tripId),
         {
             preserveScroll: true,
+            onSuccess: () => {
+                isDropdownOpen.value = false;
+            },
         }
     );
 };
@@ -71,13 +75,15 @@ const addFromTemplate = (template) => {
             <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <span class="text-xl">🧳</span> 持ち物リスト
             </h3>
-            <div class="relative group">
+            <div class="relative">
                 <button
+                    @click="isDropdownOpen = !isDropdownOpen"
                     class="text-sm text-blue-600 font-medium hover:text-blue-800 flex items-center gap-1"
                 >
                     テンプレートから追加
                     <svg
-                        class="w-4 h-4"
+                        class="w-4 h-4 transition-transform duration-200"
+                        :class="{ 'rotate-180': isDropdownOpen }"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -91,38 +97,45 @@ const addFromTemplate = (template) => {
                     </svg>
                 </button>
                 <div
-                    class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 hidden group-hover:block z-10"
+                    v-if="isDropdownOpen"
+                    class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10"
                 >
-                    <button
-                        @click="addFromTemplate('basic')"
-                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                        基本セット
-                    </button>
-                    <button
-                        @click="addFromTemplate('onsen')"
-                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                        温泉セット
-                    </button>
-                    <button
-                        @click="addFromTemplate('business')"
-                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                        出張セット
-                    </button>
-                    <button
-                        @click="addFromTemplate('summer')"
-                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                        夏旅セット
-                    </button>
-                    <button
-                        @click="addFromTemplate('winter')"
-                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                        冬旅セット
-                    </button>
+                    <div
+                        class="fixed inset-0 z-0"
+                        @click="isDropdownOpen = false"
+                    ></div>
+                    <div class="relative z-10">
+                        <button
+                            @click="addFromTemplate('basic')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                            基本セット
+                        </button>
+                        <button
+                            @click="addFromTemplate('onsen')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                            温泉セット
+                        </button>
+                        <button
+                            @click="addFromTemplate('business')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                            出張セット
+                        </button>
+                        <button
+                            @click="addFromTemplate('summer')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                            夏旅セット
+                        </button>
+                        <button
+                            @click="addFromTemplate('winter')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                            冬旅セット
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -62,6 +62,15 @@ class Trip extends Model
         return $this->belongsToMany(Tag::class, 'tag_trip');
     }
 
+    public function scopeOnThisDay($query)
+    {
+        $today = \Carbon\Carbon::today();
+        return $query
+            ->whereMonth('start_date', $today->month)
+            ->whereDay('start_date', $today->day)
+            ->whereYear('start_date', '!=', $today->year);
+    }
+
     /**
      * 検索フィルター (Scope)
      *
