@@ -27,7 +27,7 @@ class Trip extends Model
         'start_date',
         'end_date',
         'nights',
-        // 'user_id', // 認証機能と紐づける際に後で追加します
+        'user_id',
     ];
 
     /**

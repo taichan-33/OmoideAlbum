@@ -1,11 +1,14 @@
 <script setup>
-import { ref } from "vue";
-import { Head, Link, useForm, router } from "@inertiajs/vue3";
+import { ref, computed } from "vue";
+import { Head, Link, useForm, router, usePage } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 
 const props = defineProps({
     trip: Object,
 });
+
+const page = usePage();
+const currentUser = computed(() => page.props.auth.user);
 
 const photoForm = useForm({
     photo: null,
@@ -47,6 +50,63 @@ const formatDate = (dateString) => {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
+    });
+};
+
+// --- Photo Modal & Comments ---
+const selectedPhoto = ref(null);
+const commentForm = useForm({
+    comment: "",
+});
+
+const openPhotoModal = (photo) => {
+    selectedPhoto.value = photo;
+    document.body.style.overflow = "hidden"; // Prevent background scrolling
+};
+
+const closePhotoModal = () => {
+    selectedPhoto.value = null;
+    document.body.style.overflow = "";
+    commentForm.reset();
+};
+
+const submitComment = () => {
+    if (!selectedPhoto.value) return;
+
+    commentForm.post(route("photo-comments.store", selectedPhoto.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            commentForm.reset();
+            // Update the selectedPhoto's comments locally to reflect changes immediately without full reload if possible,
+            // but Inertia reload will handle it.
+            // Since we are preserving state, we might need to update the local selectedPhoto reference from the fresh props.
+            // However, Inertia's preserveState might keep the old props.
+            // Actually, preserveScroll: true is fine.
+            // We need to ensure selectedPhoto is updated with the new comment.
+            // A simple way is to find the updated photo in the new props.trip.photos
+            const updatedPhoto = props.trip.photos.find(
+                (p) => p.id === selectedPhoto.value.id
+            );
+            if (updatedPhoto) {
+                selectedPhoto.value = updatedPhoto;
+            }
+        },
+    });
+};
+
+const deleteComment = (commentId) => {
+    if (!confirm("コメントを削除しますか？")) return;
+
+    router.delete(route("photo-comments.destroy", commentId), {
+        preserveScroll: true,
+        onSuccess: () => {
+            const updatedPhoto = props.trip.photos.find(
+                (p) => p.id === selectedPhoto.value.id
+            );
+            if (updatedPhoto) {
+                selectedPhoto.value = updatedPhoto;
+            }
+        },
     });
 };
 </script>
@@ -277,17 +337,42 @@ const formatDate = (dateString) => {
                             <div
                                 v-for="photo in trip.photos"
                                 :key="photo.id"
-                                class="break-inside-avoid relative group rounded-2xl overflow-hidden bg-gray-100"
+                                @click="openPhotoModal(photo)"
+                                class="break-inside-avoid relative group rounded-2xl overflow-hidden bg-gray-100 cursor-pointer"
                             >
                                 <img
                                     :src="photo.path"
                                     class="w-full h-auto object-cover transition duration-500 group-hover:scale-105"
                                 />
                                 <div
-                                    v-if="photo.caption"
                                     class="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-sm p-3 text-white text-sm opacity-0 group-hover:opacity-100 transition duration-300"
                                 >
-                                    {{ photo.caption }}
+                                    <div v-if="photo.caption" class="mb-1">
+                                        {{ photo.caption }}
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-1 text-xs text-gray-300"
+                                    >
+                                        <svg
+                                            class="w-3 h-3"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                            ></path>
+                                        </svg>
+                                        {{
+                                            photo.comments
+                                                ? photo.comments.length
+                                                : 0
+                                        }}
+                                        コメント
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -385,5 +470,196 @@ const formatDate = (dateString) => {
                 </div>
             </div>
         </div>
+
+        <!-- Photo Modal -->
+        <Teleport to="body">
+            <div
+                v-if="selectedPhoto"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+            >
+                <!-- Backdrop -->
+                <div
+                    class="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity"
+                    @click="closePhotoModal"
+                ></div>
+
+                <!-- Modal Content -->
+                <div
+                    class="relative bg-black rounded-2xl overflow-hidden shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col md:flex-row"
+                    @click.stop
+                >
+                    <!-- Close Button -->
+                    <button
+                        @click="closePhotoModal"
+                        class="absolute top-4 right-4 z-10 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-2 transition"
+                    >
+                        <svg
+                            class="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"
+                            ></path>
+                        </svg>
+                    </button>
+
+                    <!-- Image Section -->
+                    <div
+                        class="flex-1 bg-black flex items-center justify-center min-h-[40vh] md:min-h-0"
+                    >
+                        <img
+                            :src="selectedPhoto.path"
+                            class="max-w-full max-h-[85vh] object-contain"
+                        />
+                    </div>
+
+                    <!-- Sidebar Section (Comments) -->
+                    <div
+                        class="w-full md:w-96 bg-white flex flex-col h-[50vh] md:h-auto border-l border-gray-800"
+                    >
+                        <!-- Header -->
+                        <div
+                            class="p-4 border-b border-gray-100 flex items-center justify-between bg-white z-10"
+                        >
+                            <h3 class="font-bold text-gray-900">コメント</h3>
+                            <span class="text-xs text-gray-500"
+                                >{{
+                                    selectedPhoto.comments
+                                        ? selectedPhoto.comments.length
+                                        : 0
+                                }}件</span
+                            >
+                        </div>
+
+                        <!-- Comments List -->
+                        <div
+                            class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+                        >
+                            <div
+                                v-if="selectedPhoto.caption"
+                                class="bg-white p-3 rounded-xl shadow-sm border border-gray-100"
+                            >
+                                <p class="text-sm text-gray-800">
+                                    {{ selectedPhoto.caption }}
+                                </p>
+                            </div>
+
+                            <div
+                                v-if="
+                                    selectedPhoto.comments &&
+                                    selectedPhoto.comments.length > 0
+                                "
+                                class="space-y-4"
+                            >
+                                <div
+                                    v-for="comment in selectedPhoto.comments"
+                                    :key="comment.id"
+                                    class="flex gap-3"
+                                >
+                                    <div
+                                        class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center text-white text-xs font-bold"
+                                    >
+                                        {{ comment.user_name.charAt(0) }}
+                                    </div>
+                                    <div class="flex-1">
+                                        <div
+                                            class="bg-white p-3 rounded-r-xl rounded-bl-xl shadow-sm border border-gray-100"
+                                        >
+                                            <div
+                                                class="flex justify-between items-start mb-1"
+                                            >
+                                                <span
+                                                    class="text-xs font-bold text-gray-900"
+                                                    >{{
+                                                        comment.user_name
+                                                    }}</span
+                                                >
+                                                <span
+                                                    class="text-[10px] text-gray-400"
+                                                    >{{
+                                                        comment.created_at
+                                                    }}</span
+                                                >
+                                            </div>
+                                            <p
+                                                class="text-sm text-gray-700 whitespace-pre-wrap"
+                                            >
+                                                {{ comment.comment }}
+                                            </p>
+                                        </div>
+                                        <div
+                                            v-if="
+                                                currentUser &&
+                                                currentUser.id ===
+                                                    comment.user_id
+                                            "
+                                            class="flex justify-end mt-1"
+                                        >
+                                            <button
+                                                @click="
+                                                    deleteComment(comment.id)
+                                                "
+                                                class="text-[10px] text-red-400 hover:text-red-600"
+                                            >
+                                                削除
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                v-else
+                                class="text-center py-8 text-gray-400 text-sm"
+                            >
+                                まだコメントはありません。<br />最初のコメントを投稿しましょう！
+                            </div>
+                        </div>
+
+                        <!-- Input Area -->
+                        <div class="p-4 border-t border-gray-100 bg-white">
+                            <form
+                                @submit.prevent="submitComment"
+                                class="flex gap-2"
+                            >
+                                <input
+                                    v-model="commentForm.comment"
+                                    type="text"
+                                    placeholder="コメントを入力..."
+                                    class="flex-1 border-gray-200 rounded-full text-sm focus:ring-black focus:border-black bg-gray-50 px-4"
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    :disabled="
+                                        commentForm.processing ||
+                                        !commentForm.comment
+                                    "
+                                    class="bg-black text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 transition disabled:opacity-50"
+                                >
+                                    <svg
+                                        class="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 12h14M12 5l7 7-7 7"
+                                        ></path>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </AppLayout>
 </template>

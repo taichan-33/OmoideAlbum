@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Model;
 
 class Photo extends Model
 {
@@ -25,5 +25,10 @@ class Photo extends Model
     public function trip(): BelongsTo
     {
         return $this->belongsTo(Trip::class);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(PhotoComment::class);
     }
 }

@@ -38,6 +38,15 @@ Route::post('/trips/{trip}/photos', [App\Http\Controllers\PhotoController::class
     ->name('photos.store')
     ->middleware('auth');
 
+// 写真へのコメント
+Route::post('/photos/{photo}/comments', [App\Http\Controllers\PhotoCommentController::class, 'store'])
+    ->name('photo-comments.store')
+    ->middleware('auth');
+
+Route::delete('/comments/{comment}', [App\Http\Controllers\PhotoCommentController::class, 'destroy'])
+    ->name('photo-comments.destroy')
+    ->middleware('auth');
+
 // タグ関連のルート
 Route::resource('tags', App\Http\Controllers\TagController::class)
     ->only(['index', 'store', 'destroy'])  // 今回は一覧、保存、削除だけ使う
