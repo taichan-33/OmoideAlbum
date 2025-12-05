@@ -43,7 +43,7 @@
 -   **Framework**: Laravel 11
 -   **Database**: MySQL 8.0+
 -   **Auth**: Laravel Breeze (Session based)
--   **AI**: Gemini API (via `google-gemini-php/client`)
+-   **AI**: OpenAI API (chat-gpt-5.1)
 
 ### Frontend
 
@@ -154,4 +154,103 @@ php artisan migrate --force
 
 -   **通知機能**: `database` ドライバーを使用しています。ポーリング間隔は `NotificationBell.vue` で 30 秒に設定されています。
 -   **地図機能**: 国土地理院タイル（日本）と OpenStreetMap（世界）を切り替えて使用しています。
--   **AI**: Gemini Pro モデルを使用しています。プロンプトは `SuggestionController` 内で定義されています。
+-   **AI**: chat-gpt-5.1 モデルを使用しています。プロンプトは `SuggestionController` 内で定義されています。
+
+## 📂 ディレクトリ構成
+
+主要なディレクトリとファイルの構成です。
+
+```
+omoide-album/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/    # リクエスト処理 (TripController, MapController etc.)
+│   │   └── Middleware/     # HandleInertiaRequests (共有データ)
+│   ├── Models/             # Eloquentモデル (Trip, Photo, User etc.)
+│   ├── Services/           # ビジネスロジック (AiPlannerService, StatsService)
+│   └── Notifications/      # 通知クラス (TripUpdated)
+├── config/
+│   └── packing.php         # 持ち物リストのテンプレート定義
+├── database/
+│   └── migrations/         # データベース定義
+├── resources/
+│   ├── css/                # Tailwind CSS設定
+│   └── js/
+│       ├── Components/     # 再利用可能なVueコンポーネント (NotificationBell etc.)
+│       ├── Layouts/        # ページレイアウト (AppLayout)
+│       └── Pages/          # 各ページビュー (Trips/Show, Map/Index etc.)
+└── routes/
+    └── web.php             # ルーティング定義
+```
+
+## 📊 ER 図 (Entity Relationship)
+
+アプリケーションのデータ構造です。
+
+```mermaid
+erDiagram
+    User ||--o{ Trip : "has many"
+    User ||--o{ Suggestion : "saves"
+    User ||--o{ PinnedLocation : "pins"
+    User ||--o{ PhotoComment : "writes"
+    User ||--o{ Notification : "receives"
+
+    Trip ||--o{ Photo : "contains"
+    Trip ||--o{ PackingItem : "has"
+    Trip }|--|{ Tag : "labeled with"
+
+    Photo ||--o{ PhotoComment : "has"
+
+    User {
+        int id
+        string name
+        string email
+    }
+
+    Trip {
+        int id
+        string title
+        date start_date
+        date end_date
+        json prefecture
+    }
+
+    Photo {
+        int id
+        string path
+        string caption
+    }
+
+    Suggestion {
+        int id
+        string title
+        json itinerary
+        string prefecture_code
+    }
+```
+
+## 🔄 シーケンス図 (AI 旅行プラン作成)
+
+ユーザーが AI に旅行プランを相談し、提案を受け取るまでのフローです。
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Controller as AiPlannerController
+    participant Service as AiPlannerService
+    participant Gemini as OpenAI API (GPT-5.1)
+    participant DB as Database
+
+    User->>Controller: プラン相談 (条件入力)
+    Controller->>Service: generatePlan(条件)
+    Service->>Gemini: プロンプト送信
+    Gemini-->>Service: JSONレスポンス (プラン提案)
+    Service->>DB: Suggestion保存 (一時保存)
+    Service-->>Controller: プランデータ
+    Controller-->>User: プラン表示 (Inertia)
+
+    User->>Controller: プラン保存 (Save)
+    Controller->>DB: Suggestion更新 (is_saved = true)
+    DB-->>Controller: 完了
+    Controller-->>User: 保存完了通知
+```
