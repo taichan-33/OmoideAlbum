@@ -11,6 +11,7 @@ import PackingList from "@/Components/PackingList.vue";
 
 const props = defineProps({
     trip: Object,
+    packing_templates: Object,
 });
 
 const page = usePage();
@@ -95,6 +96,7 @@ const refreshSelectedPhoto = () => {
                     <PackingList
                         :trip-id="trip.id"
                         :items="trip.packing_items"
+                        :templates="packing_templates"
                     />
 
                     <!-- Upload Card -->

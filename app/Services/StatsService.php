@@ -23,6 +23,34 @@ class StatsService
 
     private function getTopPrefectures()
     {
+        // MySQL 8.0+ の JSON_TABLE を使用して高速化
+        // prefectureカラム（JSON配列）を展開して集計する
+        $sql = "
+            SELECT p.name, COUNT(*) as count
+            FROM trips,
+            JSON_TABLE(prefecture, '\$[*]' COLUMNS (name VARCHAR(255) PATH '\$')) as p
+            GROUP BY p.name
+            ORDER BY count DESC
+            LIMIT 5
+        ";
+
+        try {
+            $results = DB::select($sql);
+
+            $topPrefectures = [];
+            foreach ($results as $row) {
+                $topPrefectures[$row->name] = $row->count;
+            }
+            return $topPrefectures;
+        } catch (\Exception $e) {
+            // JSON_TABLE が使えない環境（MySQL 5.7以下など）のためのフォールバック
+            // または開発環境でデータが入っていない場合など
+            return $this->getTopPrefecturesFallback();
+        }
+    }
+
+    private function getTopPrefecturesFallback()
+    {
         $allTrips = Trip::select('prefecture')->get();
         $prefectureCounts = [];
         foreach ($allTrips as $trip) {

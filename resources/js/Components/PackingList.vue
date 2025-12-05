@@ -5,6 +5,7 @@ import { useForm } from "@inertiajs/vue3";
 const props = defineProps({
     tripId: Number,
     items: Array,
+    templates: Object,
 });
 
 const newItemName = ref("");
@@ -106,34 +107,12 @@ const addFromTemplate = (template) => {
                     ></div>
                     <div class="relative z-10">
                         <button
-                            @click="addFromTemplate('basic')"
+                            v-for="(template, key) in templates"
+                            :key="key"
+                            @click="addFromTemplate(key)"
                             class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         >
-                            基本セット
-                        </button>
-                        <button
-                            @click="addFromTemplate('onsen')"
-                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                            温泉セット
-                        </button>
-                        <button
-                            @click="addFromTemplate('business')"
-                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                            出張セット
-                        </button>
-                        <button
-                            @click="addFromTemplate('summer')"
-                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                            夏旅セット
-                        </button>
-                        <button
-                            @click="addFromTemplate('winter')"
-                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                            冬旅セット
+                            {{ template.label }}
                         </button>
                     </div>
                 </div>

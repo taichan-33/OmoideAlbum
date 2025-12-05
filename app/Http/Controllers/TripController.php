@@ -178,6 +178,7 @@ class TripController extends Controller
                     'is_checked' => $item->is_checked,
                 ]),
             ],
+            'packing_templates' => config('packing.templates'),
         ]);
     }
 
