@@ -469,7 +469,9 @@ const sendAiMessage = async (triggerAi = true) => {
     } catch (error) {
         console.error("Failed to send message:", error);
     } finally {
-        isAiProcessing.value = false;
+        if (triggerAi) {
+            isAiProcessing.value = false;
+        }
     }
 };
 
