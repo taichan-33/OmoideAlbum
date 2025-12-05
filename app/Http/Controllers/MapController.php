@@ -55,10 +55,19 @@ class MapController extends Controller
                 ];
             });
 
-        // 3. Inertiaレスポンスを返す
+        // 3. 保存されたプラン（提案）の取得
+        $suggestions = $user
+            ->suggestions()
+            ->select('id', 'title', 'prefecture_code')
+            ->whereNotNull('prefecture_code')
+            ->get()
+            ->groupBy('prefecture_code');
+
+        // 4. Inertiaレスポンスを返す
         return Inertia::render('Map/Index', [
             'mapData' => $mapData,
-            'pinnedLocations' => $pinnedLocations
+            'pinnedLocations' => $pinnedLocations,
+            'savedSuggestions' => $suggestions
         ]);
     }
 

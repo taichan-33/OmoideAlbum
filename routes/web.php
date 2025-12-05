@@ -58,6 +58,10 @@ Route::post('/trips/{trip}/summarize', [AiSummaryController::class, 'generate'])
     ->name('trips.summarize')
     ->middleware('auth');
 
+Route::post('/suggestions/from-chat', [SuggestionController::class, 'storeFromChat'])
+    ->name('suggestions.storeFromChat')
+    ->middleware('auth');
+
 Route::resource('suggestions', SuggestionController::class)
     ->middleware('auth');  // ログイン必須
 

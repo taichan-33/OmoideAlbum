@@ -107,6 +107,26 @@ class AiPlannerController extends Controller
                 ]
                 ```
                 複数のスポットを紹介する場合も、1つのJSON配列にまとめてください。
+
+                また、ユーザーが「プランを作って」「旅程を提案して」といった場合は、以下のJSON形式でプラン全体を出力してください。
+                ```json
+                {
+                  "type": "plan",
+                  "title": "プランのタイトル（例：〇〇満喫1泊2日の旅）",
+                  "content": "プランの概要や魅力（Markdown可）",
+                  "accommodation": "おすすめの宿泊エリアや施設",
+                  "local_food": "おすすめのグルメ",
+                  "itinerary": [
+                    {
+                      "day": 1,
+                      "spots": [
+                        { "time": "10:00", "name": "スポットA", "description": "説明" },
+                        { "time": "12:00", "name": "ランチ", "description": "説明" }
+                      ]
+                    }
+                  ]
+                }
+                ```
                 EOT
         ];
 

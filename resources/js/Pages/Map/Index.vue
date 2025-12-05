@@ -71,6 +71,7 @@ import L from "leaflet";
 const props = defineProps({
     mapData: Object, // {'JP-01': {count: 5, dates: [...]}, ...}
     pinnedLocations: Object, // {'JP-01': {users: ['Taisuke', 'Hanako'], has_me: true}, ...}
+    savedSuggestions: Object, // {'JP-01': [{id: 1, title: '...'}, ...], ...}
 });
 
 const page = usePage();
@@ -88,7 +89,26 @@ const showAiPlanner = ref(false);
 const selectedPrefectureForAi = ref(null);
 const aiChatMessages = ref([]);
 const aiChatInput = ref("");
+const chatInputTextarea = ref(null);
 const isAiProcessing = ref(false);
+
+const adjustTextareaHeight = () => {
+    const textarea = chatInputTextarea.value;
+    if (textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + "px";
+    }
+};
+
+const handleChatKeydown = (e) => {
+    if (e.shiftKey) {
+        // Allow default behavior (new line)
+        return;
+    }
+    // Prevent default (new line) and send message
+    e.preventDefault();
+    sendAiMessage(true);
+};
 
 // Calculate centers for markers
 const calculateCenters = (geojson) => {
@@ -339,6 +359,11 @@ const sendAiMessage = async (triggerAi = true) => {
     const message = aiChatInput.value;
     aiChatInput.value = ""; // Clear input immediately
 
+    // Reset textarea height
+    if (chatInputTextarea.value) {
+        chatInputTextarea.value.style.height = "auto";
+    }
+
     // Optimistic UI update
     aiChatMessages.value.push({
         id: "temp-" + Date.now(),
@@ -373,14 +398,34 @@ const sendAiMessage = async (triggerAi = true) => {
         await fetchChatHistory(selectedPrefectureForAi.value.code);
     } catch (error) {
         console.error("Failed to send message:", error);
-        // Revert optimistic update or show error?
-        // For now, just logging.
     } finally {
-        if (triggerAi) {
-            isAiProcessing.value = false;
-        }
-        scrollToBottom();
+        isAiProcessing.value = false;
     }
+};
+
+const savePlan = (planData) => {
+    if (!confirm("このプランを保存しますか？")) return;
+
+    router.post(
+        route("suggestions.storeFromChat"),
+        {
+            title: planData.title,
+            content: planData.content,
+            accommodation: planData.accommodation,
+            local_food: planData.local_food,
+            itinerary: planData.itinerary,
+            prefecture_code: selectedPrefectureForAi.value.code,
+        },
+        {
+            onSuccess: () => {
+                alert("プランを保存しました！");
+            },
+            onError: (errors) => {
+                console.error("Failed to save plan:", errors);
+                alert("プランの保存に失敗しました。");
+            },
+        }
+    );
 };
 
 // Helper to generate tooltip HTML
@@ -752,6 +797,35 @@ const onEachFeature = (feature, layer) => {
 
                                     <!-- Actions -->
                                     <div class="flex flex-col gap-2">
+                                        <!-- View Plans Button (New) -->
+                                        <div
+                                            v-if="
+                                                savedSuggestions &&
+                                                savedSuggestions[code]
+                                            "
+                                            class="mb-1"
+                                        >
+                                            <div
+                                                v-for="plan in savedSuggestions[
+                                                    code
+                                                ]"
+                                                :key="plan.id"
+                                                class="mb-1"
+                                            >
+                                                <a
+                                                    :href="
+                                                        route(
+                                                            'suggestions.show',
+                                                            plan.id
+                                                        )
+                                                    "
+                                                    class="block w-full py-1.5 px-3 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors border border-indigo-200"
+                                                >
+                                                    📄 {{ plan.title }}
+                                                </a>
+                                            </div>
+                                        </div>
+
                                         <!-- Toggle Pin Button -->
                                         <button
                                             @click.stop="togglePin(code)"
@@ -983,6 +1057,122 @@ const onEachFeature = (feature, layer) => {
                                                                     "
                                                                     class="mt-3 space-y-2"
                                                                 >
+                                                                    <!-- Plan Card -->
+                                                                    <div
+                                                                        v-if="
+                                                                            segment
+                                                                                .data
+                                                                                .type ===
+                                                                            'plan'
+                                                                        "
+                                                                        class="bg-indigo-50 rounded-xl p-4 border border-indigo-200"
+                                                                    >
+                                                                        <div
+                                                                            class="flex items-start justify-between mb-3"
+                                                                        >
+                                                                            <div>
+                                                                                <h3
+                                                                                    class="font-bold text-indigo-800 text-lg"
+                                                                                >
+                                                                                    {{
+                                                                                        segment
+                                                                                            .data
+                                                                                            .title
+                                                                                    }}
+                                                                                </h3>
+                                                                                <p
+                                                                                    class="text-xs text-indigo-600 mt-1"
+                                                                                >
+                                                                                    AI提案プラン
+                                                                                </p>
+                                                                            </div>
+                                                                            <button
+                                                                                @click="
+                                                                                    savePlan(
+                                                                                        segment.data
+                                                                                    )
+                                                                                "
+                                                                                class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-full hover:bg-indigo-700 transition-colors flex items-center gap-1"
+                                                                            >
+                                                                                <svg
+                                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                                    viewBox="0 0 20 20"
+                                                                                    fill="currentColor"
+                                                                                    class="w-3 h-3"
+                                                                                >
+                                                                                    <path
+                                                                                        d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
+                                                                                    />
+                                                                                </svg>
+                                                                                プランを保存
+                                                                            </button>
+                                                                        </div>
+
+                                                                        <div
+                                                                            class="space-y-3"
+                                                                        >
+                                                                            <div
+                                                                                v-for="(
+                                                                                    day,
+                                                                                    dIdx
+                                                                                ) in segment
+                                                                                    .data
+                                                                                    .itinerary"
+                                                                                :key="
+                                                                                    dIdx
+                                                                                "
+                                                                                class="bg-white rounded-lg p-3 border border-indigo-100"
+                                                                            >
+                                                                                <div
+                                                                                    class="font-bold text-sm text-indigo-700 mb-2"
+                                                                                >
+                                                                                    {{
+                                                                                        day.day
+                                                                                    }}日目
+                                                                                </div>
+                                                                                <div
+                                                                                    class="space-y-2"
+                                                                                >
+                                                                                    <div
+                                                                                        v-for="(
+                                                                                            spot,
+                                                                                            spIdx
+                                                                                        ) in day.spots"
+                                                                                        :key="
+                                                                                            spIdx
+                                                                                        "
+                                                                                        class="flex gap-2 text-sm"
+                                                                                    >
+                                                                                        <div
+                                                                                            class="font-mono text-gray-500 text-xs pt-0.5 w-10 shrink-0"
+                                                                                        >
+                                                                                            {{
+                                                                                                spot.time
+                                                                                            }}
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <div
+                                                                                                class="font-bold text-gray-800"
+                                                                                            >
+                                                                                                {{
+                                                                                                    spot.name
+                                                                                                }}
+                                                                                            </div>
+                                                                                            <div
+                                                                                                class="text-xs text-gray-500"
+                                                                                            >
+                                                                                                {{
+                                                                                                    spot.description
+                                                                                                }}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <!-- Spot Recommendations (Array) -->
                                                                     <div
                                                                         v-if="
                                                                             Array.isArray(

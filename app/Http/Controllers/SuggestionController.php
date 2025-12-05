@@ -239,6 +239,20 @@ class SuggestionController extends Controller
     }
 
     /**
+     * 提案詳細を表示
+     */
+    public function show(Suggestion $suggestion): Response
+    {
+        if ($suggestion->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        return Inertia::render('Suggestions/Show', [
+            'suggestion' => $suggestion
+        ]);
+    }
+
+    /**
      * AI旅行提案を削除
      */
     public function destroy(Suggestion $suggestion): RedirectResponse
@@ -252,5 +266,32 @@ class SuggestionController extends Controller
         return redirect()
             ->route('suggestions.index')
             ->with('success', '提案を削除しました。');
+    }
+
+    /**
+     * チャットから提案を保存する
+     */
+    public function storeFromChat(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'nullable|string',
+            'accommodation' => 'nullable|string|max:255',
+            'local_food' => 'nullable|string|max:255',
+            'itinerary' => 'required|array',
+            'prefecture_code' => 'required|string|max:10',
+        ]);
+
+        Auth::user()->suggestions()->create([
+            'title' => $validated['title'],
+            'recommendation_score' => 5,  // チャットからの保存は高評価とみなす
+            'content' => $validated['content'] ?? '',
+            'accommodation' => $validated['accommodation'],
+            'local_food' => $validated['local_food'],
+            'itinerary_data' => $validated['itinerary'],
+            'prefecture_code' => $validated['prefecture_code'],
+        ]);
+
+        return redirect()->back()->with('success', 'プランを保存しました！');
     }
 }
