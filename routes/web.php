@@ -62,6 +62,10 @@ Route::post('/suggestions/from-chat', [SuggestionController::class, 'storeFromCh
     ->name('suggestions.storeFromChat')
     ->middleware('auth');
 
+Route::patch('/suggestions/{suggestion}/toggle-status', [SuggestionController::class, 'toggleStatus'])
+    ->name('suggestions.toggleStatus')
+    ->middleware('auth');
+
 Route::resource('suggestions', SuggestionController::class)
     ->middleware('auth');  // ログイン必須
 

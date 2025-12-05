@@ -77,7 +77,7 @@ class AiPlannerController extends Controller
             ->select('planning_chats.*', 'users.name as user_name')
             ->where('planning_chats.prefecture_code', $prefectureCode)
             ->orderBy('planning_chats.created_at', 'desc')
-            ->limit(30)
+            ->limit(50)
             ->get();
 
         $prefectureName = $this->getPrefectureName($prefectureCode);
@@ -114,14 +114,14 @@ class AiPlannerController extends Controller
                   "type": "plan",
                   "title": "プランのタイトル（例：〇〇満喫1泊2日の旅）",
                   "content": "プランの概要や魅力（Markdown可）",
-                  "accommodation": "おすすめの宿泊エリアや施設",
-                  "local_food": "おすすめのグルメ",
+                  "accommodation": "おすすめの宿泊エリアや施設（URLがあればMarkdownリンクで）",
+                  "local_food": "おすすめのグルメ（URLがあればMarkdownリンクで）",
                   "itinerary": [
                     {
                       "day": 1,
                       "spots": [
-                        { "time": "10:00", "name": "スポットA", "description": "説明" },
-                        { "time": "12:00", "name": "ランチ", "description": "説明" }
+                        { "time": "10:00", "name": "スポットA", "description": "説明", "url": "URL（あれば）" },
+                        { "time": "12:00", "name": "ランチ", "description": "説明", "url": "URL（あれば）" }
                       ]
                     }
                   ]

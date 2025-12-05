@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { useForm, Head, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { debounce } from "lodash";
@@ -12,13 +12,14 @@ const props = defineProps({
 // Search & Sort
 const search = ref(props.filters.keyword || "");
 const sort = ref(props.filters.sort || "created_at_desc");
+const source = ref(props.filters.source || "all");
 
 watch(
-    [search, sort],
+    [search, sort, source],
     debounce(() => {
         router.get(
             route("suggestions.index"),
-            { keyword: search.value, sort: sort.value },
+            { keyword: search.value, sort: sort.value, source: source.value },
             { preserveState: true, replace: true }
         );
     }, 300)
@@ -50,6 +51,35 @@ const submitGenerate = () => {
             alert("エラーが発生しました。もう一度お試しください。");
         },
     });
+};
+
+const formatTextWithLinks = (text) => {
+    if (!text) return "";
+
+    // 1. URLを検出してリンクに変換
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    let formatted = text.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors mx-1">🔗 詳細を見る</a>`;
+    });
+
+    // 2. 改行を <br> に変換
+    formatted = formatted.replace(/\n/g, "<br>");
+
+    // 3. リスト記号（・、-、*）を箇条書きスタイルに変換
+    formatted = formatted.replace(
+        /(?:<br>|^)(?:・|-|\*)\s*(.*?)(?=<br>|$)/g,
+        (match, content) => {
+            return `<div class="flex items-start gap-2 mt-2 mb-1 pl-2"><span class="text-indigo-400 mt-1.5 text-[10px]">●</span><span>${content}</span></div>`;
+        }
+    );
+
+    // 4. 【】で囲まれた部分を強調
+    formatted = formatted.replace(
+        /【(.*?)】/g,
+        '<span class="font-bold text-indigo-700 bg-indigo-50 px-1 rounded mx-1">$1</span>'
+    );
+
+    return formatted;
 };
 
 // Delete
@@ -128,7 +158,42 @@ const toggleDetails = (id) => {
                 >
                     <span>💡</span> 提案一覧
                 </h2>
-                <div class="flex gap-4 w-full md:w-auto">
+                <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                    <div class="flex bg-gray-100 p-1 rounded-xl">
+                        <button
+                            @click="source = 'all'"
+                            class="px-4 py-2 rounded-lg text-sm font-bold transition"
+                            :class="
+                                source === 'all'
+                                    ? 'bg-white shadow text-black'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            "
+                        >
+                            すべて
+                        </button>
+                        <button
+                            @click="source = 'planner'"
+                            class="px-4 py-2 rounded-lg text-sm font-bold transition"
+                            :class="
+                                source === 'planner'
+                                    ? 'bg-white shadow text-black'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            "
+                        >
+                            AIプランナー
+                        </button>
+                        <button
+                            @click="source = 'chat'"
+                            class="px-4 py-2 rounded-lg text-sm font-bold transition"
+                            :class="
+                                source === 'chat'
+                                    ? 'bg-white shadow text-black'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            "
+                        >
+                            チャット提案
+                        </button>
+                    </div>
                     <input
                         v-model="search"
                         type="text"
@@ -222,42 +287,71 @@ const toggleDetails = (id) => {
                                 >
                                     <span>🗓️</span> モデル日程
                                 </h4>
-                                <div class="space-y-6 relative pl-4">
+                                <div class="space-y-8 relative pl-4">
                                     <div
                                         class="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-100"
                                     ></div>
+
+                                    <!-- Loop through Days -->
                                     <div
                                         v-for="(
-                                            item, index
+                                            day, dIndex
                                         ) in suggestion.itinerary_data"
-                                        :key="index"
+                                        :key="dIndex"
                                         class="relative pl-8"
                                     >
-                                        <div
-                                            class="absolute left-0 top-0 w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center border-4 border-white shadow-sm z-10"
-                                        >
-                                            <i
-                                                :class="`bi ${
-                                                    item.icon ||
-                                                    'bi-geo-alt-fill'
-                                                }`"
-                                            ></i>
-                                        </div>
-                                        <div>
-                                            <span
-                                                class="text-xs font-bold text-gray-500 uppercase tracking-wider"
-                                                >{{ item.day }}</span
+                                        <!-- Day Header -->
+                                        <div class="mb-4">
+                                            <div
+                                                class="absolute left-0 top-0 w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm z-10 font-bold text-xs"
                                             >
+                                                {{ day.day }}
+                                            </div>
                                             <h5
-                                                class="font-bold text-gray-900 mt-1"
+                                                class="font-bold text-indigo-900 text-lg ml-2"
                                             >
-                                                {{ item.title }}
+                                                Day {{ day.day }}
                                             </h5>
-                                            <p
-                                                class="text-gray-600 text-sm mt-1 leading-relaxed"
+                                        </div>
+
+                                        <!-- Loop through Spots -->
+                                        <div class="space-y-4 ml-2">
+                                            <div
+                                                v-for="(
+                                                    spot, sIndex
+                                                ) in day.spots"
+                                                :key="sIndex"
+                                                class="bg-gray-50 rounded-lg p-3 border border-gray-200"
                                             >
-                                                {{ item.details }}
-                                            </p>
+                                                <div
+                                                    class="flex justify-between items-start"
+                                                >
+                                                    <div
+                                                        class="font-bold text-gray-900 text-sm"
+                                                    >
+                                                        <span
+                                                            class="text-indigo-600 mr-2"
+                                                            >{{
+                                                                spot.time
+                                                            }}</span
+                                                        >
+                                                        {{ spot.name }}
+                                                    </div>
+                                                    <a
+                                                        v-if="spot.url"
+                                                        :href="spot.url"
+                                                        target="_blank"
+                                                        class="text-xs text-blue-500 hover:underline whitespace-nowrap ml-2"
+                                                    >
+                                                        詳細 &rarr;
+                                                    </a>
+                                                </div>
+                                                <div
+                                                    class="text-xs text-gray-600 mt-1"
+                                                >
+                                                    {{ spot.description }}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -269,25 +363,35 @@ const toggleDetails = (id) => {
                                     class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm"
                                 >
                                     <h4
-                                        class="font-bold text-gray-900 mb-2 flex items-center gap-2"
+                                        class="font-bold text-gray-900 mb-4 flex items-center gap-2"
                                     >
                                         <span>🏨</span> おすすめの宿
                                     </h4>
-                                    <p class="text-gray-600">
-                                        {{ suggestion.accommodation }}
-                                    </p>
+                                    <div
+                                        class="text-gray-600 leading-relaxed space-y-2"
+                                        v-html="
+                                            formatTextWithLinks(
+                                                suggestion.accommodation
+                                            )
+                                        "
+                                    ></div>
                                 </div>
                                 <div
                                     class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm"
                                 >
                                     <h4
-                                        class="font-bold text-gray-900 mb-2 flex items-center gap-2"
+                                        class="font-bold text-gray-900 mb-4 flex items-center gap-2"
                                     >
                                         <span>🍽️</span> 名産・グルメ
                                     </h4>
-                                    <p class="text-gray-600">
-                                        {{ suggestion.local_food }}
-                                    </p>
+                                    <div
+                                        class="text-gray-600 leading-relaxed space-y-2"
+                                        v-html="
+                                            formatTextWithLinks(
+                                                suggestion.local_food
+                                            )
+                                        "
+                                    ></div>
                                 </div>
                             </div>
 
@@ -301,8 +405,10 @@ const toggleDetails = (id) => {
                                     <span>📝</span> 提案の理由
                                 </h4>
                                 <div
-                                    class="prose prose-indigo max-w-none text-gray-600"
-                                    v-html="suggestion.content"
+                                    class="prose max-w-none text-gray-600 leading-relaxed"
+                                    v-html="
+                                        formatTextWithLinks(suggestion.content)
+                                    "
                                 ></div>
                             </div>
 

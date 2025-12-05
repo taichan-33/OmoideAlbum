@@ -74,6 +74,23 @@ const props = defineProps({
     savedSuggestions: Object, // {'JP-01': [{id: 1, title: '...'}, ...], ...}
 });
 
+// DEBUG: Check props updates
+watch(
+    () => props.savedSuggestions,
+    (newVal) => {
+        console.log("DEBUG: savedSuggestions updated", newVal);
+    },
+    { deep: true, immediate: true }
+);
+
+watch(
+    () => props.pinnedLocations,
+    (newVal) => {
+        console.log("DEBUG: pinnedLocations updated", newVal);
+    },
+    { deep: true, immediate: true }
+);
+
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 
@@ -91,6 +108,8 @@ const aiChatMessages = ref([]);
 const aiChatInput = ref("");
 const chatInputTextarea = ref(null);
 const isAiProcessing = ref(false);
+const activeMenuMessageId = ref(null);
+const menuPosition = ref({ top: 0, left: 0 });
 
 const adjustTextareaHeight = () => {
     const textarea = chatInputTextarea.value;
@@ -100,14 +119,20 @@ const adjustTextareaHeight = () => {
     }
 };
 
+// Watch input to adjust height
+watch(aiChatInput, () => {
+    nextTick(() => {
+        adjustTextareaHeight();
+    });
+});
+
 const handleChatKeydown = (e) => {
-    if (e.shiftKey) {
-        // Allow default behavior (new line)
-        return;
+    if (e.isComposing) return;
+
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        sendAiMessage(true);
     }
-    // Prevent default (new line) and send message
-    e.preventDefault();
-    sendAiMessage(true);
 };
 
 // Calculate centers for markers
@@ -299,12 +324,15 @@ const scrollToBottom = () => {
 };
 
 // Fetch Chat History
-const fetchChatHistory = async (code) => {
+const fetchChatHistory = async (code, shouldScroll = false) => {
     try {
         const response = await axios.get(
             route("ai-planner.index", { prefectureCode: code })
         );
         const history = response.data;
+
+        // Check if we have new messages to decide on scrolling if not forced
+        const isNewMessage = history.length > aiChatMessages.value.length;
 
         if (history.length === 0 && aiChatMessages.value.length === 0) {
             // Initial greeting if no history
@@ -314,12 +342,25 @@ const fetchChatHistory = async (code) => {
                     content: `「${selectedPrefectureForAi.value.name}」への旅行計画を立てましょう！どのような旅行にしたいですか？`,
                 },
             ];
-        } else if (history.length > 0) {
-            // Update messages, preserving local optimistic updates if needed, but for now just replace
-            // To avoid jumping, maybe only append? But simple replacement is safer for sync.
+        } else {
+            // Update messages
+            // Only update if length changed to avoid unnecessary re-renders/scrolls?
+            // For now, just update.
             aiChatMessages.value = history;
         }
-        scrollToBottom();
+
+        if (shouldScroll) {
+            scrollToBottom();
+        } else if (isNewMessage) {
+            // If user is near bottom, scroll
+            if (chatContainer.value) {
+                const { scrollTop, scrollHeight, clientHeight } =
+                    chatContainer.value;
+                if (scrollHeight - scrollTop - clientHeight < 100) {
+                    scrollToBottom();
+                }
+            }
+        }
     } catch (error) {
         console.error("Failed to fetch chat history", error);
     }
@@ -331,16 +372,20 @@ const openAiPlanner = async (code, name) => {
     showAiPlanner.value = true;
     aiChatMessages.value = [];
 
-    await fetchChatHistory(code);
+    await fetchChatHistory(code, true);
 
     // Start Polling
     if (chatPollingInterval.value) clearInterval(chatPollingInterval.value);
     chatPollingInterval.value = setInterval(() => {
         if (showAiPlanner.value && selectedPrefectureForAi.value) {
-            fetchChatHistory(selectedPrefectureForAi.value.code);
+            fetchChatHistory(selectedPrefectureForAi.value.code, false);
         }
     }, 5000); // Poll every 5 seconds
 };
+// Plan Request Modal State
+const showPlanRequestModal = ref(false);
+const planRequestQuote = ref("");
+const planRequestAdditional = ref("");
 
 // Close AI Planner
 const closeAiPlanner = () => {
@@ -350,6 +395,31 @@ const closeAiPlanner = () => {
         chatPollingInterval.value = null;
     }
     selectedPrefectureForAi.value = null;
+};
+
+const createPlanFromMessage = (content) => {
+    planRequestQuote.value = content;
+    planRequestAdditional.value = "";
+    showPlanRequestModal.value = true;
+};
+
+const submitPlanRequest = () => {
+    const prompt = `以下の提案内容を元に、詳細な旅程表（プラン）をJSON形式で作成してください。\n\n引用：\n${planRequestQuote.value}\n\n追加の要望：\n${planRequestAdditional.value}`;
+
+    aiChatInput.value = prompt;
+    showPlanRequestModal.value = false;
+
+    // Send immediately or just fill input?
+    // User said "Input additional info... UX is bad if chat bar is long".
+    // So we should probably send it immediately or fill it and let them review?
+    // "追加チャットはAIアイコンを選択した際に追加情報という手入力できるようにしましょう！！！"
+    // "チャット欄だと長くなるのでUX体験が悪くなりそうです"
+    // This implies they want to input it in the modal and then have it sent (or at least formatted).
+    // I will send it immediately to avoid the "long chat bar" issue.
+    // Or maybe just show a short summary in the chat bar?
+    // No, the chat bar is for the *next* message.
+    // If I send it immediately, it's better.
+    sendAiMessage(true);
 };
 
 // Send Message to AI
@@ -417,6 +487,8 @@ const savePlan = (planData) => {
             prefecture_code: selectedPrefectureForAi.value.code,
         },
         {
+            preserveState: true,
+            preserveScroll: true,
             onSuccess: () => {
                 alert("プランを保存しました！");
             },
@@ -426,6 +498,35 @@ const savePlan = (planData) => {
             },
         }
     );
+};
+
+// Watch input to adjust height
+watch(aiChatInput, () => {
+    setTimeout(adjustTextareaHeight, 0);
+});
+
+const toggleMenu = (event, idx) => {
+    if (activeMenuMessageId.value === idx) {
+        activeMenuMessageId.value = null;
+    } else {
+        activeMenuMessageId.value = idx;
+        const rect = event.target.getBoundingClientRect();
+
+        // Check if menu would go off screen bottom
+        const menuHeight = 50; // Approx height
+        const spaceBelow = window.innerHeight - rect.bottom;
+
+        let top = rect.bottom + window.scrollY + 5;
+        if (spaceBelow < menuHeight + 20) {
+            // Show above
+            top = rect.top + window.scrollY - menuHeight - 5;
+        }
+
+        menuPosition.value = {
+            top: top,
+            left: rect.left + window.scrollX,
+        };
+    }
 };
 
 // Helper to generate tooltip HTML
@@ -803,26 +904,86 @@ const onEachFeature = (feature, layer) => {
                                                 savedSuggestions &&
                                                 savedSuggestions[code]
                                             "
-                                            class="mb-1"
+                                            class="mb-1 space-y-2"
                                         >
+                                            <!-- Not Visited Plans -->
                                             <div
-                                                v-for="plan in savedSuggestions[
-                                                    code
-                                                ]"
-                                                :key="plan.id"
-                                                class="mb-1"
+                                                v-if="
+                                                    savedSuggestions[code].some(
+                                                        (p) => !p.is_visited
+                                                    )
+                                                "
                                             >
-                                                <a
-                                                    :href="
-                                                        route(
-                                                            'suggestions.show',
-                                                            plan.id
-                                                        )
-                                                    "
-                                                    class="block w-full py-1.5 px-3 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors border border-indigo-200"
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 mb-0.5"
                                                 >
-                                                    📄 {{ plan.title }}
-                                                </a>
+                                                    まだ（行きたい）
+                                                </div>
+                                                <div
+                                                    v-for="plan in savedSuggestions[
+                                                        code
+                                                    ].filter(
+                                                        (p) => !p.is_visited
+                                                    )"
+                                                    :key="plan.id"
+                                                    class="mb-1"
+                                                >
+                                                    <a
+                                                        :href="
+                                                            route(
+                                                                'suggestions.show',
+                                                                plan.id
+                                                            )
+                                                        "
+                                                        class="block w-full py-1.5 px-3 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 flex items-center gap-1"
+                                                    >
+                                                        <span
+                                                            class="text-indigo-400"
+                                                            >📄</span
+                                                        >
+                                                        {{ plan.title }}
+                                                    </a>
+                                                </div>
+                                            </div>
+
+                                            <!-- Visited Plans -->
+                                            <div
+                                                v-if="
+                                                    savedSuggestions[code].some(
+                                                        (p) => p.is_visited
+                                                    )
+                                                "
+                                            >
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 mb-0.5"
+                                                >
+                                                    行った（思い出）
+                                                </div>
+                                                <div
+                                                    v-for="plan in savedSuggestions[
+                                                        code
+                                                    ].filter(
+                                                        (p) => p.is_visited
+                                                    )"
+                                                    :key="plan.id"
+                                                    class="mb-1"
+                                                >
+                                                    <a
+                                                        :href="
+                                                            route(
+                                                                'suggestions.show',
+                                                                plan.id
+                                                            )
+                                                        "
+                                                        class="block w-full py-1.5 px-3 bg-green-50 text-green-700 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors border border-green-200 flex items-center gap-1"
+                                                    >
+                                                        <span
+                                                            class="text-green-500"
+                                                            >✅</span
+                                                        >
+                                                        {{ plan.title }}
+                                                    </a>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1012,10 +1173,67 @@ const onEachFeature = (feature, layer) => {
                                                     "
                                                     class="flex justify-start items-end gap-2"
                                                 >
-                                                    <div
-                                                        class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0"
-                                                    >
-                                                        AI
+                                                    <div class="relative">
+                                                        <div
+                                                            @click="
+                                                                toggleMenu(
+                                                                    $event,
+                                                                    idx
+                                                                )
+                                                            "
+                                                            class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                                            title="クリックしてメニューを表示"
+                                                        >
+                                                            AI
+                                                        </div>
+
+                                                        <!-- Context Menu (Teleported to body to avoid overflow issues) -->
+                                                        <Teleport to="body">
+                                                            <div
+                                                                v-if="
+                                                                    activeMenuMessageId ===
+                                                                    idx
+                                                                "
+                                                            >
+                                                                <!-- Backdrop to close menu -->
+                                                                <div
+                                                                    class="fixed inset-0 z-[10000]"
+                                                                    @click="
+                                                                        activeMenuMessageId =
+                                                                            null
+                                                                    "
+                                                                ></div>
+
+                                                                <!-- Menu -->
+                                                                <div
+                                                                    class="fixed bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden z-[10001] w-48"
+                                                                    :style="{
+                                                                        top:
+                                                                            menuPosition.top +
+                                                                            'px',
+                                                                        left:
+                                                                            menuPosition.left +
+                                                                            'px',
+                                                                    }"
+                                                                >
+                                                                    <button
+                                                                        @click="
+                                                                            createPlanFromMessage(
+                                                                                msg.content
+                                                                            );
+                                                                            activeMenuMessageId =
+                                                                                null;
+                                                                        "
+                                                                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors flex items-center gap-2"
+                                                                    >
+                                                                        <span
+                                                                            >📝</span
+                                                                        >
+                                                                        引用してプラン作成
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </Teleport>
                                                     </div>
                                                     <div class="max-w-[90%]">
                                                         <div
@@ -1251,15 +1469,103 @@ const onEachFeature = (feature, layer) => {
 
                                         <!-- Input Area -->
                                         <div class="flex flex-col gap-2">
-                                            <input
+                                            <textarea
+                                                ref="chatInputTextarea"
                                                 v-model="aiChatInput"
-                                                @keyup.enter="
-                                                    sendAiMessage(false)
-                                                "
-                                                type="text"
-                                                class="w-full appearance-none border border-gray-300 rounded-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                @input="adjustTextareaHeight"
+                                                @keydown="handleChatKeydown"
+                                                rows="1"
+                                                class="w-full appearance-none border border-gray-300 rounded-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden max-h-32"
                                                 placeholder="メッセージを入力..."
-                                            />
+                                            ></textarea>
+
+                                            <!-- Plan Request Modal -->
+                                            <Teleport to="body">
+                                                <div
+                                                    v-if="showPlanRequestModal"
+                                                    class="fixed inset-0 z-[10002] flex items-center justify-center p-4"
+                                                >
+                                                    <!-- Backdrop -->
+                                                    <div
+                                                        class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                                                        @click="
+                                                            showPlanRequestModal = false
+                                                        "
+                                                    ></div>
+                                                    <!-- Modal Content -->
+                                                    <div
+                                                        class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+                                                    >
+                                                        <div
+                                                            class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50"
+                                                        >
+                                                            <h3
+                                                                class="font-bold text-gray-800"
+                                                            >
+                                                                プラン作成の要望を追加
+                                                            </h3>
+                                                            <button
+                                                                @click="
+                                                                    showPlanRequestModal = false
+                                                                "
+                                                                class="text-gray-400 hover:text-gray-600"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                        <div
+                                                            class="p-4 overflow-y-auto"
+                                                        >
+                                                            <div class="mb-4">
+                                                                <label
+                                                                    class="block text-xs font-bold text-gray-500 mb-1"
+                                                                    >引用する提案内容</label
+                                                                >
+                                                                <div
+                                                                    class="bg-gray-50 p-3 rounded-lg text-xs text-gray-600 max-h-32 overflow-y-auto border border-gray-200 whitespace-pre-wrap"
+                                                                >
+                                                                    {{
+                                                                        planRequestQuote
+                                                                    }}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label
+                                                                    class="block text-sm font-bold text-gray-700 mb-2"
+                                                                    >追加の要望（任意）</label
+                                                                >
+                                                                <textarea
+                                                                    v-model="
+                                                                        planRequestAdditional
+                                                                    "
+                                                                    class="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[100px]"
+                                                                    placeholder="例：予算は一人3万円以内で、温泉宿がいいです。"
+                                                                ></textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div
+                                                            class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2"
+                                                        >
+                                                            <button
+                                                                @click="
+                                                                    showPlanRequestModal = false
+                                                                "
+                                                                class="px-4 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded-lg transition-colors"
+                                                            >
+                                                                キャンセル
+                                                            </button>
+                                                            <button
+                                                                @click="
+                                                                    submitPlanRequest
+                                                                "
+                                                                class="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+                                                            >
+                                                                プランを作成する
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </Teleport>
                                             <div class="flex gap-2 justify-end">
                                                 <button
                                                     @click="

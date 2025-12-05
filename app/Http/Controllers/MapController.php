@@ -58,7 +58,7 @@ class MapController extends Controller
         // 3. 保存されたプラン（提案）の取得
         $suggestions = $user
             ->suggestions()
-            ->select('id', 'title', 'prefecture_code')
+            ->select('id', 'title', 'prefecture_code', 'is_visited')
             ->whereNotNull('prefecture_code')
             ->get()
             ->groupBy('prefecture_code');

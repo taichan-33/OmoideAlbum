@@ -7,6 +7,7 @@ use App\Models\Trip;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
@@ -45,7 +46,12 @@ class SuggestionController extends Controller
             });
         }
 
-        // 2. 並び替え (デフォルトは新しい順)
+        // 2. ソースフィルタ (planner / chat)
+        if ($request->filled('source') && $request->source !== 'all') {
+            $query->where('source', $request->source);
+        }
+
+        // 3. 並び替え (デフォルトは新しい順)
         $sort = $request->input('sort', 'created_at_desc');
 
         if ($sort === 'score_desc') {
@@ -161,13 +167,21 @@ class SuggestionController extends Controller
 1. `title`: 提案する旅行プランのキャッチーなタイトル (文字列)。
 2. `recommendation_score`: 1〜5の「おすすめ度」 (整数)。
 3. `content`: 提案の詳細な説明と、なぜそれをお勧めするのかの理由 (Trix Editorで表示できるリッチなHTML形式の文字列)。
-4. `accommodation`: おすすめの宿泊先（宿・ホテルの具体名やエリア） (文字列)。
-5. `local_food`: その地域の代表的な名産物や料理 (例: 「カニ、但馬牛、出石そば」) (文字列)。
+4. `accommodation`: おすすめの宿泊先（宿・ホテルの具体名やエリア）。URLがある場合は必ず含めてください (文字列)。
+5. `local_food`: その地域の代表的な名産物や料理 (例: 「カニ、但馬牛、出石そば」)。URLがある場合は必ず含めてください (文字列)。
 6. `itinerary`: 「モデル日程表」を、以下の形式のJSON配列 (Array) で作成してください。
    [
-     { "day": "1日目", "icon": "bi-airplane-fill", "title": "〇〇到着と市内散策", "details": "空港からホテルへ移動。チェックイン後、△△広場を散策し、地元のレストランで夕食。" },
-     { "day": "2日目", "icon": "bi-camera-fill", "title": "主要観光地めぐり", "details": "午前中は〇〇博物館、午後は△△城を見学。" },
-     { "day": "3日目", "icon": "bi-bag-check-fill", "title": "お土産と帰路", "details": "朝市でお土産を購入し、空港へ。" }
+     {
+       "day": 1,
+       "spots": [
+         { "time": "10:00", "name": "〇〇空港到着", "description": "空港でレンタカーを借りて出発。", "url": "https://example.com" },
+         { "time": "12:00", "name": "△△レストラン", "description": "名物の海鮮丼ランチ。", "url": "https://restaurant.example.com" }
+       ]
+     },
+     {
+       "day": 2,
+       "spots": [ ... ]
+     }
    ]
 ';
 
@@ -253,6 +267,21 @@ class SuggestionController extends Controller
     }
 
     /**
+     * 訪問済みステータスを切り替える
+     */
+    public function toggleStatus(Suggestion $suggestion): RedirectResponse
+    {
+        if ($suggestion->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $suggestion->is_visited = !$suggestion->is_visited;
+        $suggestion->save();
+
+        return redirect()->back()->with('success', 'ステータスを更新しました。');
+    }
+
+    /**
      * AI旅行提案を削除
      */
     public function destroy(Suggestion $suggestion): RedirectResponse
@@ -274,12 +303,12 @@ class SuggestionController extends Controller
     public function storeFromChat(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'nullable|string',
-            'accommodation' => 'nullable|string|max:255',
-            'local_food' => 'nullable|string|max:255',
+            'title' => 'required|string',
+            'content' => 'required|string',
+            'accommodation' => 'nullable|string',
+            'local_food' => 'nullable|string',
             'itinerary' => 'required|array',
-            'prefecture_code' => 'required|string|max:10',
+            'prefecture_code' => 'required|string|starts_with:JP-',
         ]);
 
         Auth::user()->suggestions()->create([
@@ -290,6 +319,15 @@ class SuggestionController extends Controller
             'local_food' => $validated['local_food'],
             'itinerary_data' => $validated['itinerary'],
             'prefecture_code' => $validated['prefecture_code'],
+            'source' => 'chat',
+        ]);
+
+        // ピン留めも自動で行う
+        DB::table('pinned_locations')->insertOrIgnore([
+            'user_id' => Auth::id(),
+            'prefecture_code' => $validated['prefecture_code'],
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return redirect()->back()->with('success', 'プランを保存しました！');
