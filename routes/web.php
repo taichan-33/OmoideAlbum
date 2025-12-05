@@ -72,3 +72,12 @@ Route::post('/map/pin', [MapController::class, 'storePin'])
 Route::delete('/map/pin', [MapController::class, 'destroyPin'])
     ->name('map.pin.destroy')
     ->middleware('auth');
+
+// AI Planner (Chat)
+Route::get('/ai-planner/{prefectureCode}', [App\Http\Controllers\AiPlannerController::class, 'index'])
+    ->name('ai-planner.index')
+    ->middleware('auth');
+
+Route::post('/ai-planner', [App\Http\Controllers\AiPlannerController::class, 'store'])
+    ->name('ai-planner.store')
+    ->middleware('auth');

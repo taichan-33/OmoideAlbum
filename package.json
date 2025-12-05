@@ -26,6 +26,7 @@
         "@vue-leaflet/vue-leaflet": "^0.10.1",
         "leaflet": "^1.9.4",
         "lodash": "^4.17.21",
+        "marked": "^17.0.1",
         "trix": "^2.1.15",
         "vue": "^3.5.25",
         "ziggy-js": "^2.6.0"

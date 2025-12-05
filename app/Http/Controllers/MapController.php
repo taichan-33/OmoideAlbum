@@ -41,15 +41,24 @@ class MapController extends Controller
             }
         }
 
-        // 2. ピン留めした場所の取得
-        $pinnedCodes = DB::table('pinned_locations')
-            ->where('user_id', $user->id)
-            ->pluck('prefecture_code');
+        // 2. ピン留めした場所の取得 (ユーザー情報付き)
+        $pinnedLocations = DB::table('pinned_locations')
+            ->join('users', 'pinned_locations.user_id', '=', 'users.id')
+            ->select('pinned_locations.prefecture_code', 'users.name', 'users.id as user_id')
+            ->get()
+            ->groupBy('prefecture_code')
+            ->map(function ($group) {
+                return [
+                    'users' => $group->pluck('name')->unique()->values(),
+                    'user_ids' => $group->pluck('user_id')->unique()->values(),
+                    'has_me' => $group->contains('user_id', Auth::id()),
+                ];
+            });
 
         // 3. Inertiaレスポンスを返す
         return Inertia::render('Map/Index', [
             'mapData' => $mapData,
-            'pinnedCodes' => $pinnedCodes
+            'pinnedLocations' => $pinnedLocations
         ]);
     }
 

@@ -40,6 +40,15 @@ const summarizeTrip = () => {
         router.post(route("trips.summarize", props.trip.id));
     }
 };
+const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    });
+};
 </script>
 
 <template>
@@ -98,8 +107,10 @@ const summarizeTrip = () => {
                             <span
                                 class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full"
                             >
-                                {{ trip.start_date }} 〜
-                                {{ trip.end_date || trip.start_date }}
+                                {{ formatDate(trip.start_date) }} 〜
+                                {{
+                                    formatDate(trip.end_date || trip.start_date)
+                                }}
                             </span>
                             <span
                                 class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full"
