@@ -23,6 +23,7 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'badges' => $request->user()->badges,  // バッジ情報を渡す
         ]);
     }
 
@@ -45,11 +46,13 @@ class ProfileController extends Controller
             ],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],  // 10MB Max
+            'show_bot_status' => ['boolean'],
         ]);
 
         // 2. ユーザー情報を更新
         $user->name = $validated['name'];
         $user->email = $validated['email'];
+        $user->show_bot_status = $validated['show_bot_status'] ?? true;
 
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);

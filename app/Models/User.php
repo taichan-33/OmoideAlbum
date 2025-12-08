@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'status',
         'status_updated_at',
+        'show_bot_status',
     ];
 
     /**
@@ -105,5 +106,13 @@ class User extends Authenticatable
         }
 
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+    }
+
+    public function badges()
+    {
+        return $this
+            ->belongsToMany(Badge::class, 'user_badges')
+            ->withPivot('obtained_at')
+            ->withTimestamps();
     }
 }

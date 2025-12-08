@@ -35,12 +35,13 @@ const parseContent = (content) => {
     if (!content) return [];
     // Split by hashtags (e.g., #温泉)
     // Note: This regex is simple and might need refinement for complex cases
-    const regex = /(#\S+)/g;
+    const regex = /((?:#|@)[^\s　]+)/g;
     return content
         .split(regex)
         .map((text) => ({
             text,
             isHashtag: text.startsWith("#"),
+            isMention: text.startsWith("@"),
         }))
         .filter((segment) => segment.text);
 };
@@ -93,6 +94,11 @@ const visitPost = () => {
                             class="text-blue-600 hover:underline"
                             @click.stop
                             >{{ segment.text }}</Link
+                        >
+                        <span
+                            v-else-if="segment.isMention"
+                            class="text-indigo-600 font-bold"
+                            >{{ segment.text }}</span
                         >
                         <template v-else>{{ segment.text }}</template>
                     </template>

@@ -10,6 +10,7 @@ const props = defineProps({
     currentTab: String,
     userStatus: Object,
     partnerStatus: Object,
+    botStatus: Object,
 });
 
 const postCreatorRef = ref(null);
@@ -143,6 +144,36 @@ const handleReply = (post) => {
                                 {{
                                     new Date(
                                         partnerStatus.status_updated_at
+                                    ).toLocaleDateString()
+                                }}
+                                更新
+                            </div>
+                        </div>
+
+                        <!-- Bot Status -->
+                        <div
+                            v-if="botStatus"
+                            class="flex-1 w-full sm:border-l sm:pl-4 border-indigo-100"
+                        >
+                            <div
+                                class="text-xs font-bold text-green-500 mb-1 flex items-center gap-1"
+                            >
+                                <img
+                                    :src="botStatus.profile_photo_url"
+                                    class="w-5 h-5 rounded-full object-cover"
+                                />
+                                {{ botStatus.name }}の気分
+                            </div>
+                            <div class="text-gray-800 font-medium text-lg">
+                                {{ botStatus.status || "応援中！" }}
+                            </div>
+                            <div
+                                class="text-xs text-gray-400 mt-1"
+                                v-if="botStatus.status_updated_at"
+                            >
+                                {{
+                                    new Date(
+                                        botStatus.status_updated_at
                                     ).toLocaleDateString()
                                 }}
                                 更新

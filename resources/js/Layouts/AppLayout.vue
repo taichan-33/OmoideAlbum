@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 
 import NotificationBell from "@/Components/NotificationBell.vue";
+import BadgeAnimation from "@/Components/BadgeAnimation.vue";
 
 const showingNavigationDropdown = ref(false);
 const user = usePage().props.auth.user;
@@ -274,5 +275,7 @@ const logout = () => {
         <main>
             <slot />
         </main>
+
+        <BadgeAnimation />
     </div>
 </template>

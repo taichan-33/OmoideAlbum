@@ -6,6 +6,7 @@ import { ref } from "vue";
 const props = defineProps({
     mustVerifyEmail: Boolean,
     status: String,
+    badges: Array, // バッジ情報を受け取る
 });
 
 const user = usePage().props.auth.user;
@@ -17,6 +18,10 @@ const form = useForm({
     password: "",
     password_confirmation: "",
     profile_photo: null,
+    show_bot_status:
+        user.show_bot_status !== undefined
+            ? Boolean(user.show_bot_status)
+            : true,
 });
 
 const photoPreview = ref(null);
@@ -72,6 +77,49 @@ const submit = () => {
                             <span class="block sm:inline">{{
                                 $page.props.flash.success
                             }}</span>
+                        </div>
+
+                        <!-- Badges Section -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">
+                                獲得した称号
+                            </h3>
+                            <div
+                                v-if="badges.length === 0"
+                                class="text-gray-500 text-sm"
+                            >
+                                まだ称号を獲得していません。たくさん旅行して集めましょう！
+                            </div>
+                            <div
+                                v-else
+                                class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+                            >
+                                <div
+                                    v-for="badge in badges"
+                                    :key="badge.id"
+                                    class="flex flex-col items-center p-4 bg-yellow-50 rounded-lg border border-yellow-200 text-center"
+                                >
+                                    <div class="text-4xl mb-2">
+                                        {{ badge.icon_path }}
+                                    </div>
+                                    <div
+                                        class="font-bold text-gray-800 text-sm"
+                                    >
+                                        {{ badge.name }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        {{ badge.description }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-400 mt-2">
+                                        {{
+                                            new Date(
+                                                badge.pivot.obtained_at
+                                            ).toLocaleDateString()
+                                        }}
+                                        獲得
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <form @submit.prevent="submit">
@@ -210,6 +258,20 @@ const submit = () => {
                                     type="password"
                                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 />
+                            </div>
+
+                            <!-- Bot Status Toggle -->
+                            <div class="mb-6">
+                                <label class="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        v-model="form.show_bot_status"
+                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                    />
+                                    <span class="ml-2 text-sm text-gray-600">
+                                        タイムラインに「クイックン」の気分を表示する
+                                    </span>
+                                </label>
                             </div>
 
                             <div class="flex items-center justify-end">

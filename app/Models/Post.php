@@ -20,6 +20,40 @@ class Post extends Model
         'parent_post_id',
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($post) {
+            // メンション検出 (@ユーザー名)
+            // 空白、改行、全角スペースなどで区切られた @ から始まる文字列を抽出
+            if (preg_match_all("/@([^\s\u{3000}]+)/u", $post->content, $matches)) {
+                $mentionedNames = array_unique($matches[1]);
+
+                if (!empty($mentionedNames)) {
+                    $users = User::whereIn('name', $mentionedNames)->get();
+
+                    foreach ($users as $user) {
+                        // 自分自身へのメンションは通知しない
+                        if ($user->id !== $post->user_id) {
+                            $user->notify(new \App\Notifications\PostInteracted(
+                                $post->user,
+                                $post,
+                                $post,  // targetPost is the post itself for mentions
+                                'mention'
+                            ));
+
+                            // Botへのメンションなら返信ジョブをディスパッチ
+                            // Botの判定: emailがconfig('services.bot.email')と一致するか、または名前が「クイックン」か
+                            // ここでは名前判定も入れておくが、基本はEmail推奨
+                            if ($user->email === config('services.bot.email') || $user->name === 'クイックン') {
+                                \App\Jobs\GenerateBotReply::dispatch($post, $user);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     protected $with = ['user', 'attachment'];
 
     // 投稿者

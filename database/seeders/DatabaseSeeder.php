@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
         User::firstOrCreate(
             ['email' => config('services.bot.email')],
             [
-                'name' => '思い出ボット',
+                'name' => 'クイックン',
                 'password' => \Illuminate\Support\Facades\Hash::make(config('services.bot.password')),
                 'status' => 'みんなの思い出を応援中！',
             ]

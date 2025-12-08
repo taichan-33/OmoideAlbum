@@ -49,6 +49,7 @@ class PostInteracted extends Notification
             'quote' => "{$this->actor->name}さんがあなたの投稿を引用しました",
             'like' => "{$this->actor->name}さんがあなたの投稿にいいねしました",
             'want_to_go' => "{$this->actor->name}さんがあなたの投稿に行きたい！しました",
+            'mention' => "{$this->actor->name}さんがあなたをメンションしました",
             default => "{$this->actor->name}さんがあなたのアクションに反応しました",
         };
 
@@ -57,6 +58,7 @@ class PostInteracted extends Notification
             'quote' => 'Ql',
             'like' => '❤️',
             'want_to_go' => '✨',
+            'mention' => '👋',
             default => '🔔',
         };
 

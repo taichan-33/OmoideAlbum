@@ -114,6 +114,22 @@
     npm run dev
     ```
 
+6. **バックグラウンドジョブの実行 (Queue Worker)**
+
+    Bot の自動返信機能などを動作させるために、キューワーカーを起動する必要があります。
+
+    **通常の Laravel 環境:**
+
+    ```bash
+    php artisan queue:work
+    ```
+
+    **Laravel Sail 環境:**
+
+    ```bash
+    ./vendor/bin/sail artisan queue:work
+    ```
+
 ## ☁️ Cloud Run デプロイガイド
 
 本番環境（Google Cloud Run）へデプロイする際の重要事項です。

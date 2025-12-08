@@ -132,9 +132,14 @@ class TripController extends Controller
             }
         }
 
+        // 4. バッジ獲得チェック
+        $badgeService = new \App\Services\BadgeService();
+        $newBadges = $badgeService->checkBadges($request->user());
+
         return redirect()
             ->route('trips.index')
-            ->with('success', '旅行の思い出を登録しました！');
+            ->with('success', '旅行の思い出を登録しました！')
+            ->with('new_badges', $newBadges);
     }
 
     public function show(Trip $trip): Response
@@ -272,9 +277,14 @@ class TripController extends Controller
             '✏️'
         ));
 
+        // バッジ獲得チェック
+        $badgeService = new \App\Services\BadgeService();
+        $newBadges = $badgeService->checkBadges(\Illuminate\Support\Facades\Auth::user());
+
         return redirect()
             ->route('trips.show', $trip)  // 編集後は詳細ページへリダイレクト
-            ->with('success', '旅行の思い出を更新しました！');
+            ->with('success', '旅行の思い出を更新しました！')
+            ->with('new_badges', $newBadges);
     }
 
     /**

@@ -25,6 +25,18 @@ class TimelineController extends Controller
         $currentUser = Auth::user();
         $partner = $currentUser->partner;
 
+        // Bot status
+        $botStatus = null;
+        if ($currentUser->show_bot_status) {
+            $bot = \App\Models\User::where('email', config('services.bot.email'))->first();
+            if ($bot) {
+                $botStatus = [
+                    ...$bot->only(['name', 'status', 'status_updated_at']),
+                    'profile_photo_url' => $bot->profile_photo_url,
+                ];
+            }
+        }
+
         return Inertia::render('Timeline/Index', [
             'posts' => $posts,
             'currentTab' => $tab,
@@ -36,6 +48,7 @@ class TimelineController extends Controller
                 ...$partner->only(['name', 'status', 'status_updated_at']),
                 'profile_photo_url' => $partner->profile_photo_url,
             ] : null,
+            'botStatus' => $botStatus,
         ]);
     }
 
