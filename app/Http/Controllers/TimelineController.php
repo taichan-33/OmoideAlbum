@@ -28,8 +28,14 @@ class TimelineController extends Controller
         return Inertia::render('Timeline/Index', [
             'posts' => $posts,
             'currentTab' => $tab,
-            'userStatus' => $currentUser->only(['status', 'status_updated_at']),
-            'partnerStatus' => $partner ? $partner->only(['name', 'status', 'status_updated_at']) : null,
+            'userStatus' => [
+                ...$currentUser->only(['status', 'status_updated_at']),
+                'profile_photo_url' => $currentUser->profile_photo_url,
+            ],
+            'partnerStatus' => $partner ? [
+                ...$partner->only(['name', 'status', 'status_updated_at']),
+                'profile_photo_url' => $partner->profile_photo_url,
+            ] : null,
         ]);
     }
 

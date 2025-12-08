@@ -54,10 +54,12 @@ const visitPost = () => {
     <div class="bg-white p-4 rounded-lg shadow border border-gray-100">
         <div class="flex gap-3">
             <div class="flex-shrink-0">
-                <div
-                    class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-lg font-bold text-indigo-600"
-                >
-                    {{ post.user.name.charAt(0) }}
+                <div class="flex-shrink-0">
+                    <img
+                        :src="post.user.profile_photo_url"
+                        :alt="post.user.name"
+                        class="w-10 h-10 rounded-full object-cover border border-gray-200"
+                    />
                 </div>
             </div>
             <div class="flex-grow">

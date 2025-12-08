@@ -69,7 +69,10 @@ const handleReply = (post) => {
                             <div
                                 class="text-xs font-bold text-indigo-500 mb-1 flex items-center gap-1"
                             >
-                                <i class="bi bi-person-circle"></i>
+                                <img
+                                    :src="userStatus?.profile_photo_url"
+                                    class="w-5 h-5 rounded-full object-cover"
+                                />
                                 あなたの今の気分
                             </div>
                             <div
@@ -121,7 +124,10 @@ const handleReply = (post) => {
                             <div
                                 class="text-xs font-bold text-pink-500 mb-1 flex items-center gap-1"
                             >
-                                <i class="bi bi-heart-fill"></i>
+                                <img
+                                    :src="partnerStatus.profile_photo_url"
+                                    class="w-5 h-5 rounded-full object-cover"
+                                />
                                 {{ partnerStatus.name }}さんの気分
                             </div>
                             <div class="text-gray-800 font-medium text-lg">

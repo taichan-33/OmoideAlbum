@@ -126,11 +126,11 @@ const deleteComment = (commentId) => {
                                 :key="comment.id"
                                 class="flex gap-3"
                             >
-                                <div
-                                    class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center text-white text-xs font-bold"
-                                >
-                                    {{ comment.user_name.charAt(0) }}
-                                </div>
+                                <img
+                                    :src="comment.user_profile_photo_url"
+                                    :alt="comment.user_name"
+                                    class="flex-shrink-0 w-8 h-8 rounded-full object-cover border border-gray-200"
+                                />
                                 <div class="flex-1">
                                     <div
                                         class="bg-white p-3 rounded-r-xl rounded-bl-xl shadow-sm border border-gray-100"

@@ -49,6 +49,15 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = [
+        'profile_photo_url',
+    ];
+
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);
@@ -76,8 +85,25 @@ class User extends Authenticatable
      * パートナー（自分以外のユーザー）を取得
      * 現状は簡易的に「自分以外の最初の一人」とする
      */
+
+    /**
+     * パートナー（自分以外のユーザー）を取得
+     * 現状は簡易的に「自分以外の最初の一人」とする
+     */
     public function getPartnerAttribute()
     {
         return self::where('id', '!=', $this->id)->first();
+    }
+
+    /**
+     * プロフィール画像のURLを取得
+     */
+    public function getProfilePhotoUrlAttribute()
+    {
+        if ($this->profile_photo_path) {
+            return asset('storage/' . $this->profile_photo_path);
+        }
+
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
     }
 }

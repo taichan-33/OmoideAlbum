@@ -2,23 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule; // バリデーションルール
-use Illuminate\Validation\Rules; // パスワードルール
-use Illuminate\View\View; // View を返す型宣言
-use Illuminate\Http\RedirectResponse; // Redirect を返す型宣言
+use Illuminate\Support\Facades\Storage;  // Storageファサードを追加
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules;
+use Inertia\Inertia;  // Inertiaを追加
+use Inertia\Response;  // Inertia Response型
 
 class ProfileController extends Controller
 {
     /**
      * プロフィール編集フォームを表示
      */
-    public function edit(): View
+    public function edit(Request $request): Response
     {
-        return view('profile.edit', [
-            'user' => Auth::user(), // ログイン中のユーザー情報をビューに渡す
+        return Inertia::render('Profile/Edit', [
+            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'status' => session('status'),
         ]);
     }
 
@@ -37,27 +41,36 @@ class ProfileController extends Controller
                 'string',
                 'email',
                 'max:255',
-                // 自分自身のEmailはユニークチェックから除外する
                 Rule::unique('users')->ignore($user->id),
             ],
-            // パスワードは任意 (入力された場合のみ更新)
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240'],  // 10MB Max
         ]);
 
         // 2. ユーザー情報を更新
         $user->name = $validated['name'];
         $user->email = $validated['email'];
 
-        // パスワードが入力されている場合のみ、ハッシュ化して更新
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
 
-        // 3. 保存
+        // 3. 画像アップロード処理
+        if ($request->hasFile('profile_photo')) {
+            // 古い画像があれば削除
+            if ($user->profile_photo_path) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+
+            // 新しい画像を保存
+            $path = $request->file('profile_photo')->store('profile-photos', 'public');
+            $user->profile_photo_path = $path;
+        }
+
+        // 4. 保存
         $user->save();
 
-        // 4. リダイレクト (成功メッセージを添えて)
-        return redirect()->route('profile.edit')
-            ->with('success', 'プロフィールを更新しました！');
+        // 5. リダイレクト
+        return redirect()->route('profile.edit')->with('success', '設定を更新しました');
     }
 }

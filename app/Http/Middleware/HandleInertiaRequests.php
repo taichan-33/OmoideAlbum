@@ -41,6 +41,10 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
                 'unreadNotificationsCount' => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             ],
+            'flash' => [
+                'success' => fn() => $request->session()->get('success'),
+                'error' => fn() => $request->session()->get('error'),
+            ],
             'prefectures' => collect(\App\Enums\Prefecture::cases())->map(fn($p) => $p->label())->values()->toArray(),
         ];
     }

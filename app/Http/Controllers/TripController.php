@@ -168,6 +168,7 @@ class TripController extends Controller
                         'id' => $comment->id,
                         'user_id' => $comment->user_id,
                         'user_name' => $comment->user->name,
+                        'user_profile_photo_url' => $comment->user->profile_photo_url,
                         'comment' => $comment->comment,
                         'created_at' => $comment->created_at->format('Y/m/d H:i'),
                     ]),

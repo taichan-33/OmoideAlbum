@@ -117,11 +117,11 @@ defineExpose({ setAttachment, setReplyTo });
     <div class="bg-white p-4 rounded-lg shadow mb-6 border border-gray-200">
         <div class="flex gap-3">
             <div class="flex-shrink-0">
-                <div
-                    class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xl"
-                >
-                    👤
-                </div>
+                <img
+                    :src="$page.props.auth.user.profile_photo_url"
+                    :alt="$page.props.auth.user.name"
+                    class="w-10 h-10 rounded-full object-cover border border-gray-200"
+                />
             </div>
             <div class="flex-grow">
                 <textarea
