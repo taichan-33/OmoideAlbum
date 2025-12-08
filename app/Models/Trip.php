@@ -89,6 +89,8 @@ class Trip extends Model
             $q->where('prefecture', 'LIKE', '%' . $pref . '%');
         })->when($filters['tag_id'] ?? null, function ($q, $tagId) {
             $q->whereHas('tags', fn($subQ) => $subQ->where('tag_id', $tagId));
+        })->when($filters['tag'] ?? null, function ($q, $tagName) {
+            $q->whereHas('tags', fn($subQ) => $subQ->where('name', $tagName));
         })->when($filters['date_from'] ?? null, function ($q, $date) {
             $q->where('start_date', '>=', $date);
         })->when($filters['date_to'] ?? null, function ($q, $date) {

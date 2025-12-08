@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { Link, useForm } from "@inertiajs/vue3";
+import { Link, useForm, router } from "@inertiajs/vue3";
 import AttachmentCard from "@/Components/Timeline/AttachmentCard.vue";
 
 const props = defineProps({
@@ -30,6 +30,24 @@ const toggleReaction = (type) => {
         },
     });
 };
+
+const parseContent = (content) => {
+    if (!content) return [];
+    // Split by hashtags (e.g., #温泉)
+    // Note: This regex is simple and might need refinement for complex cases
+    const regex = /(#\S+)/g;
+    return content
+        .split(regex)
+        .map((text) => ({
+            text,
+            isHashtag: text.startsWith("#"),
+        }))
+        .filter((segment) => segment.text);
+};
+
+const visitPost = () => {
+    router.visit(route("timeline.show", props.post.id));
+};
 </script>
 
 <template>
@@ -55,12 +73,28 @@ const toggleReaction = (type) => {
                     </Link>
                 </div>
 
-                <Link
-                    :href="route('timeline.show', post.id)"
-                    class="block mt-1 text-gray-800 whitespace-pre-wrap hover:bg-gray-50 p-1 -ml-1 rounded transition"
+                <div
+                    class="mt-1 text-gray-800 whitespace-pre-wrap hover:bg-gray-50 p-1 -ml-1 rounded transition cursor-pointer"
+                    @click="visitPost"
                 >
-                    {{ post.content }}
-                </Link>
+                    <template
+                        v-for="(segment, index) in parseContent(post.content)"
+                        :key="index"
+                    >
+                        <Link
+                            v-if="segment.isHashtag"
+                            :href="
+                                route('trips.index', {
+                                    tag: segment.text.substring(1),
+                                })
+                            "
+                            class="text-blue-600 hover:underline"
+                            @click.stop
+                            >{{ segment.text }}</Link
+                        >
+                        <template v-else>{{ segment.text }}</template>
+                    </template>
+                </div>
 
                 <!-- Attachment -->
                 <AttachmentCard
