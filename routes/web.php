@@ -125,11 +125,21 @@ Route::delete('/packing-items/{item}', [App\Http\Controllers\PackingItemControll
 Route::get('/timeline', [App\Http\Controllers\TimelineController::class, 'index'])
     ->name('timeline.index')
     ->middleware('auth');
+
 Route::post('/timeline', [App\Http\Controllers\TimelineController::class, 'store'])
     ->name('timeline.store')
     ->middleware('auth');
+
 Route::get('/api/timeline/attachables', [App\Http\Controllers\TimelineController::class, 'getAttachables'])
     ->name('timeline.attachables')
+    ->middleware('auth');
+
+Route::post('/timeline/{post}/reaction', [App\Http\Controllers\TimelineController::class, 'toggleReaction'])
+    ->name('timeline.reaction')
+    ->middleware('auth');
+
+Route::get('/timeline/{post}', [App\Http\Controllers\TimelineController::class, 'show'])
+    ->name('timeline.show')
     ->middleware('auth');
 
 // Notifications

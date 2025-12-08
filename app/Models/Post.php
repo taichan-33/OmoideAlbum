@@ -45,4 +45,10 @@ class Post extends Model
     {
         return $this->hasMany(Post::class, 'parent_post_id');
     }
+
+    // リアクション
+    public function reactions()
+    {
+        return $this->morphMany(Reaction::class, 'reactable');
+    }
 }

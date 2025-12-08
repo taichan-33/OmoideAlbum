@@ -10,6 +10,7 @@ const props = defineProps({
 const isTrip = computed(() => props.type === "App\\Models\\Trip");
 const isPhoto = computed(() => props.type === "App\\Models\\Photo");
 const isSuggestion = computed(() => props.type === "App\\Models\\Suggestion");
+const isPost = computed(() => props.type === "App\\Models\\Post");
 
 const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -93,5 +94,32 @@ const formatDate = (dateString) => {
                 </div>
             </div>
         </Link>
+
+        <!-- Post (Quote Retweet) -->
+        <div v-else-if="isPost" class="p-3 bg-white">
+            <div class="flex items-center gap-2 mb-2">
+                <div
+                    class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600"
+                >
+                    {{ attachment.user?.name?.charAt(0) }}
+                </div>
+                <span class="font-bold text-sm text-gray-800">{{
+                    attachment.user?.name
+                }}</span>
+                <span class="text-xs text-gray-500">{{
+                    formatDate(attachment.created_at)
+                }}</span>
+            </div>
+            <div class="text-sm text-gray-800 mb-2">
+                {{ attachment.content }}
+            </div>
+            <!-- Nested Attachment (if any) -->
+            <AttachmentCard
+                v-if="attachment.attachment"
+                :type="attachment.attachment_type"
+                :attachment="attachment.attachment"
+                class="mt-2 text-xs"
+            />
+        </div>
     </div>
 </template>

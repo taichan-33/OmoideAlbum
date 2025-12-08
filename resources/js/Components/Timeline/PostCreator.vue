@@ -8,6 +8,8 @@ const form = useForm({
     attachment_type: null,
     attachment_id: null,
     attachment_preview: null, // UI表示用
+    parent_post_id: null, // 返信用
+    reply_to_user: null, // UI表示用
 });
 
 const isModalOpen = ref(false);
@@ -16,6 +18,13 @@ const attachables = ref({
     trips: [],
     photos: [],
     suggestions: [],
+});
+
+const props = defineProps({
+    placeholder: {
+        type: String,
+        default: "今何してる？あの旅行どうだった？",
+    },
 });
 
 const fetchAttachables = async () => {
@@ -48,11 +57,17 @@ const clearAttachment = () => {
     form.attachment_preview = null;
 };
 
+const clearReply = () => {
+    form.parent_post_id = null;
+    form.reply_to_user = null;
+};
+
 const submit = () => {
     form.post(route("timeline.store"), {
         onSuccess: () => {
             form.reset();
             clearAttachment();
+            clearReply();
         },
     });
 };
@@ -71,6 +86,20 @@ onMounted(() => {
         // プレビューは取得できないので、"引用中..." とだけ表示するか、APIを叩く
     }
 });
+const setAttachment = (type, item) => {
+    form.attachment_type = type;
+    form.attachment_id = item.id;
+    form.attachment_preview = item;
+};
+
+const setReplyTo = (post) => {
+    form.parent_post_id = post.id;
+    form.reply_to_user = post.user;
+    // 返信時は添付をクリアする（仕様によるが、今回はシンプルに）
+    clearAttachment();
+};
+
+defineExpose({ setAttachment, setReplyTo });
 </script>
 
 <template>
@@ -86,10 +115,29 @@ onMounted(() => {
             <div class="flex-grow">
                 <textarea
                     v-model="form.content"
-                    placeholder="今何してる？あの旅行どうだった？"
+                    :placeholder="placeholder"
                     class="w-full border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-indigo-500 resize-none"
                     rows="3"
                 ></textarea>
+
+                <!-- Reply Preview -->
+                <div
+                    v-if="form.parent_post_id"
+                    class="mt-2 relative border rounded-lg p-3 bg-blue-50 border-blue-200"
+                >
+                    <button
+                        @click="clearReply"
+                        class="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                    >
+                        <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                    <div class="text-sm text-blue-600 mb-1">
+                        <i class="bi bi-reply-fill"></i> 返信先:
+                    </div>
+                    <div class="font-bold text-gray-800">
+                        @{{ form.reply_to_user?.name }}
+                    </div>
+                </div>
 
                 <!-- Attachment Preview -->
                 <div
@@ -110,7 +158,10 @@ onMounted(() => {
                         {{
                             form.attachment_preview.title ||
                             form.attachment_preview.caption ||
-                            "選択されたアイテム"
+                            (form.attachment_type === "App\\Models\\Post"
+                                ? form.attachment_preview.user?.name +
+                                  "さんの投稿"
+                                : "選択されたアイテム")
                         }}
                     </div>
                     <div v-else class="text-gray-400 text-sm">
@@ -157,18 +208,23 @@ onMounted(() => {
         <div
             v-if="isModalOpen"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            @click.self="isModalOpen = false"
         >
             <div
-                class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col"
+                class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col relative"
             >
-                <div class="p-4 border-b flex justify-between items-center">
+                <!-- Close Button (Explicit) -->
+                <button
+                    @click="isModalOpen = false"
+                    class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10 p-2"
+                >
+                    <i class="bi bi-x-lg text-xl"></i>
+                </button>
+
+                <div
+                    class="p-4 border-b flex justify-between items-center pr-12"
+                >
                     <h3 class="font-bold text-lg">思い出を引用</h3>
-                    <button
-                        @click="isModalOpen = false"
-                        class="text-gray-500 hover:text-gray-700"
-                    >
-                        <i class="bi bi-x-lg"></i>
-                    </button>
                 </div>
 
                 <div class="flex border-b">
