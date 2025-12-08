@@ -31,4 +31,16 @@ class Photo extends Model
     {
         return $this->hasMany(PhotoComment::class);
     }
+
+    public function posts()
+    {
+        return $this->morphMany(Post::class, 'attachment');
+    }
+
+    protected $appends = ['url'];
+
+    public function getUrlAttribute()
+    {
+        return \Illuminate\Support\Facades\Storage::url($this->path);
+    }
 }

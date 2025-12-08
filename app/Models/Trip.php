@@ -62,6 +62,11 @@ class Trip extends Model
         return $this->belongsToMany(Tag::class, 'tag_trip');
     }
 
+    public function posts()
+    {
+        return $this->morphMany(Post::class, 'attachment');
+    }
+
     public function scopeOnThisDay($query)
     {
         $today = \Carbon\Carbon::today();
