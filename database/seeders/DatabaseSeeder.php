@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
 
         // Bot User
         User::firstOrCreate(
-            ['email' => 'bot@omoide-album.com'],
+            ['email' => config('services.bot.email')],
             [
                 'name' => '思い出ボット',
                 'password' => \Illuminate\Support\Facades\Hash::make('secure_password'),  // In production, this should be env or random

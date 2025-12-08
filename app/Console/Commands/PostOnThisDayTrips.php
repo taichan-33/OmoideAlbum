@@ -29,7 +29,7 @@ class PostOnThisDayTrips extends Command
     public function handle()
     {
         $today = Carbon::today();
-        $trips = Trip::onThisDay()->get();
+        $trips = Trip::onThisDay()->with('user')->get();
 
         $this->info("Found {$trips->count()} trips for today.");
 
@@ -38,7 +38,7 @@ class PostOnThisDayTrips extends Command
         }
 
         // Find the Bot user
-        $botUser = \App\Models\User::where('email', 'bot@omoide-album.com')->first();
+        $botUser = \App\Models\User::where('email', config('services.bot.email'))->first();
 
         if (!$botUser) {
             $this->error('Bot user not found. Please run seeders.');
