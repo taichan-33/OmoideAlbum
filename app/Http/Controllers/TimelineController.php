@@ -14,40 +14,12 @@ class TimelineController extends Controller
         $userId = Auth::id();
         $tab = $request->input('tab', 'timeline');
 
-        $query = Post::with(['user', 'attachment', 'parentPost.user', 'parentPost.attachment'])
-            ->withCount(['replies', 'reactions as likes_count' => function ($query) {
-                $query->where('type', 'like');
-            }, 'reactions as funs_count' => function ($query) {
-                $query->where('type', 'fun');
-            }, 'reactions as want_to_go_count' => function ($query) {
-                $query->where('type', 'want_to_go');
-            }, 'reactions as on_hold_count' => function ($query) {
-                $query->where('type', 'on_hold');
-            }, 'reactions as interested_count' => function ($query) {
-                $query->where('type', 'interested');
-            }])
-            ->withExists(['reactions as is_liked' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'like');
-            }, 'reactions as is_fun' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'fun');
-            }, 'reactions as is_want_to_go' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'want_to_go');
-            }, 'reactions as is_on_hold' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'on_hold');
-            }, 'reactions as is_interested' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'interested');
-            }]);
-
-        if ($tab === 'my_posts') {
-            $query->where('user_id', $userId)->whereNull('parent_post_id');
-        } elseif ($tab === 'my_replies') {
-            $query->where('user_id', $userId)->whereNotNull('parent_post_id');
-        } else {
-            // timeline (default): Global posts, excluding replies
-            $query->whereNull('parent_post_id');
-        }
-
-        $posts = $query->latest()->paginate(20)->withQueryString();
+        $posts = Post::with(['user', 'attachment', 'parentPost.user', 'parentPost.attachment'])
+            ->withReactionDetails($userId)
+            ->filterByTab($tab, $userId)
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
 
         // Get statuses
         $currentUser = Auth::user();
@@ -103,26 +75,7 @@ class TimelineController extends Controller
             'type' => 'required|in:like,fun,want_to_go,on_hold,interested',
         ]);
 
-        $type = $validated['type'];
-        $user = Auth::user();
-
-        // 既にリアクションしているか確認
-        $existingReaction = $post
-            ->reactions()
-            ->where('user_id', $user->id)
-            ->where('type', $type)
-            ->first();
-
-        if ($existingReaction) {
-            // 既にある場合は削除 (Toggle Off)
-            $existingReaction->delete();
-        } else {
-            // ない場合は作成 (Toggle On)
-            $post->reactions()->create([
-                'user_id' => $user->id,
-                'type' => $type,
-            ]);
-        }
+        $post->toggleReaction(Auth::id(), $validated['type']);
 
         return back();
     }
@@ -132,50 +85,21 @@ class TimelineController extends Controller
         $userId = Auth::id();
 
         // メインの投稿
-        $post
-            ->load(['user', 'attachment', 'parentPost.user', 'parentPost.attachment'])
-            ->loadCount(['replies', 'reactions as likes_count' => function ($query) {
-                $query->where('type', 'like');
-            }, 'reactions as funs_count' => function ($query) {
-                $query->where('type', 'fun');
-            }])
-            ->loadExists(['reactions as is_liked' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'like');
-            }, 'reactions as is_fun' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'fun');
-            }]);
+
+        $post = Post::withReactionDetails($userId)
+            ->with(['user', 'attachment', 'parentPost.user', 'parentPost.attachment'])
+            ->findOrFail($post->id);
 
         // 親投稿 (もしあれば)
-        if ($post->parentPost) {
-            $post
-                ->parentPost
-                ->load(['user', 'attachment'])
-                ->loadCount(['replies', 'reactions as likes_count' => function ($query) {
-                    $query->where('type', 'like');
-                }, 'reactions as funs_count' => function ($query) {
-                    $query->where('type', 'fun');
-                }])
-                ->loadExists(['reactions as is_liked' => function ($query) use ($userId) {
-                    $query->where('user_id', $userId)->where('type', 'like');
-                }, 'reactions as is_fun' => function ($query) use ($userId) {
-                    $query->where('user_id', $userId)->where('type', 'fun');
-                }]);
+        if ($post->parent_post_id) {
+            $post->setRelation('parentPost', Post::withReactionDetails($userId)->with(['user', 'attachment'])->find($post->parent_post_id));
         }
 
         // 返信一覧
         $replies = $post
             ->replies()
+            ->withReactionDetails($userId)
             ->with(['user', 'attachment', 'parentPost.user', 'parentPost.attachment'])
-            ->withCount(['replies', 'reactions as likes_count' => function ($query) {
-                $query->where('type', 'like');
-            }, 'reactions as funs_count' => function ($query) {
-                $query->where('type', 'fun');
-            }])
-            ->withExists(['reactions as is_liked' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'like');
-            }, 'reactions as is_fun' => function ($query) use ($userId) {
-                $query->where('user_id', $userId)->where('type', 'fun');
-            }])
             ->latest()
             ->get();
 

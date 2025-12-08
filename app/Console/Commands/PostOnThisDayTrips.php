@@ -37,14 +37,13 @@ class PostOnThisDayTrips extends Command
             return;
         }
 
-        // Find or create the Bot user
-        $botUser = \App\Models\User::firstOrCreate(
-            ['email' => 'bot@omoide-album.com'],
-            [
-                'name' => '思い出ボット',
-                'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)),
-            ]
-        );
+        // Find the Bot user
+        $botUser = \App\Models\User::where('email', 'bot@omoide-album.com')->first();
+
+        if (!$botUser) {
+            $this->error('Bot user not found. Please run seeders.');
+            return;
+        }
 
         foreach ($trips as $trip) {
             // Check if a post already exists for this trip today to avoid duplicates

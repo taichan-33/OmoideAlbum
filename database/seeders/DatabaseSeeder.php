@@ -21,5 +21,15 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Bot User
+        User::firstOrCreate(
+            ['email' => 'bot@omoide-album.com'],
+            [
+                'name' => '思い出ボット',
+                'password' => \Illuminate\Support\Facades\Hash::make('secure_password'),  // In production, this should be env or random
+                'status' => 'みんなの思い出を応援中！',
+            ]
+        );
     }
 }
