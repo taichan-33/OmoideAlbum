@@ -138,6 +138,7 @@ Route::post('/timeline/{post}/reaction', [App\Http\Controllers\TimelineControlle
     ->name('timeline.reaction')
     ->middleware('auth');
 
+Route::post('/timeline/status', [App\Http\Controllers\TimelineController::class, 'updateStatus'])->name('timeline.status.update');
 Route::get('/timeline/{post}', [App\Http\Controllers\TimelineController::class, 'show'])
     ->name('timeline.show')
     ->middleware('auth');

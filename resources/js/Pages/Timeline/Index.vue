@@ -2,15 +2,35 @@
 import AppLayout from "@/Layouts/AppLayout.vue";
 import PostCreator from "@/Components/Timeline/PostCreator.vue";
 import PostItem from "@/Components/Timeline/PostItem.vue";
-import { Head, Link } from "@inertiajs/vue3";
+import { Head, Link, useForm } from "@inertiajs/vue3";
 import { ref } from "vue";
 
 const props = defineProps({
     posts: Object,
     currentTab: String,
+    userStatus: Object,
+    partnerStatus: Object,
 });
 
 const postCreatorRef = ref(null);
+const isEditingStatus = ref(false);
+const statusForm = useForm({
+    status: "",
+});
+
+const startEditStatus = () => {
+    statusForm.status = props.userStatus?.status || "";
+    isEditingStatus.value = true;
+};
+
+const saveStatus = () => {
+    statusForm.post(route("timeline.status.update"), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isEditingStatus.value = false;
+        },
+    });
+};
 
 const handleQuote = (post) => {
     // 引用リツイート: PostCreatorにセット
@@ -37,6 +57,94 @@ const handleReply = (post) => {
 
         <div class="py-12">
             <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
+                <!-- Status Bar -->
+                <div
+                    class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 mb-6 shadow-sm border border-indigo-100"
+                >
+                    <div
+                        class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center"
+                    >
+                        <!-- My Status -->
+                        <div class="flex-1 w-full">
+                            <div
+                                class="text-xs font-bold text-indigo-500 mb-1 flex items-center gap-1"
+                            >
+                                <i class="bi bi-person-circle"></i>
+                                あなたの今の気分
+                            </div>
+                            <div
+                                v-if="!isEditingStatus"
+                                class="flex items-center gap-2"
+                            >
+                                <div class="text-gray-800 font-medium text-lg">
+                                    {{
+                                        userStatus?.status ||
+                                        "ステータスを設定してみよう！"
+                                    }}
+                                </div>
+                                <button
+                                    @click="startEditStatus"
+                                    class="text-gray-400 hover:text-indigo-600 transition"
+                                >
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                            </div>
+                            <div v-else class="flex gap-2 items-center">
+                                <input
+                                    v-model="statusForm.status"
+                                    type="text"
+                                    class="border-gray-300 rounded-md text-sm w-full focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="例: 温泉に行きたい！"
+                                    @keydown.enter="saveStatus"
+                                />
+                                <button
+                                    @click="saveStatus"
+                                    class="bg-indigo-600 text-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-indigo-700 transition whitespace-nowrap"
+                                    :disabled="statusForm.processing"
+                                >
+                                    保存
+                                </button>
+                                <button
+                                    @click="isEditingStatus = false"
+                                    class="text-gray-500 hover:text-gray-700 text-xs whitespace-nowrap"
+                                >
+                                    キャンセル
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Partner Status -->
+                        <div
+                            v-if="partnerStatus"
+                            class="flex-1 w-full sm:border-l sm:pl-4 border-indigo-100"
+                        >
+                            <div
+                                class="text-xs font-bold text-pink-500 mb-1 flex items-center gap-1"
+                            >
+                                <i class="bi bi-heart-fill"></i>
+                                {{ partnerStatus.name }}さんの気分
+                            </div>
+                            <div class="text-gray-800 font-medium text-lg">
+                                {{
+                                    partnerStatus.status ||
+                                    "まだ設定されていません"
+                                }}
+                            </div>
+                            <div
+                                class="text-xs text-gray-400 mt-1"
+                                v-if="partnerStatus.status_updated_at"
+                            >
+                                {{
+                                    new Date(
+                                        partnerStatus.status_updated_at
+                                    ).toLocaleDateString()
+                                }}
+                                更新
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Post Creator -->
                 <PostCreator ref="postCreatorRef" />
 

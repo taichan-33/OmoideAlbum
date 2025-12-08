@@ -27,13 +27,27 @@ const props = defineProps({
     },
 });
 
-const fetchAttachables = async () => {
+const selectedTripId = ref("");
+
+const fetchAttachables = async (tripId = null) => {
     try {
-        const response = await axios.get(route("timeline.attachables"));
-        attachables.value = response.data;
+        const params = tripId ? { trip_id: tripId } : {};
+        const response = await axios.get(route("timeline.attachables"), {
+            params,
+        });
+        // If filtering by trip, only update photos
+        if (tripId) {
+            attachables.value.photos = response.data.photos;
+        } else {
+            attachables.value = response.data;
+        }
     } catch (error) {
         console.error("Failed to fetch attachables:", error);
     }
+};
+
+const handleTripFilterChange = () => {
+    fetchAttachables(selectedTripId.value);
 };
 
 const openModal = (tab) => {
@@ -79,11 +93,8 @@ onMounted(() => {
     const shareId = params.get("share_id");
 
     if (shareType && shareId) {
-        // ここで本来はIDからデータを引く必要があるが、簡易的にセットだけしておく
-        // またはAPIで詳細を取得するロジックを追加する
         form.attachment_type = shareType;
         form.attachment_id = parseInt(shareId);
-        // プレビューは取得できないので、"引用中..." とだけ表示するか、APIを叩く
     }
 });
 const setAttachment = (type, item) => {
@@ -247,6 +258,29 @@ defineExpose({ setAttachment, setReplyTo });
                                 : "🤖 AIプラン"
                         }}
                     </button>
+                </div>
+
+                <!-- Filter for Photos -->
+                <div
+                    v-if="activeTab === 'photos'"
+                    class="p-4 border-b bg-gray-50"
+                >
+                    <select
+                        v-model="selectedTripId"
+                        @change="handleTripFilterChange"
+                        class="w-full border-gray-300 rounded-lg text-sm"
+                    >
+                        <option value="">すべての写真</option>
+                        <option
+                            v-for="trip in attachables.trips"
+                            :key="trip.id"
+                            :value="trip.id"
+                        >
+                            {{ trip.title }} ({{
+                                new Date(trip.start_date).getFullYear()
+                            }})
+                        </option>
+                    </select>
                 </div>
 
                 <div class="overflow-y-auto p-4 flex-grow">

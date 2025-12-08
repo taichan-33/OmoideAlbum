@@ -1,11 +1,15 @@
 <script setup>
 import { computed } from "vue";
 import { Link } from "@inertiajs/vue3";
+import MiniMap from "@/Components/MiniMap.vue";
 
 const props = defineProps({
     type: String,
     attachment: Object,
+    post: Object, // Optional, for reaction state
 });
+
+const emit = defineEmits(["vote"]);
 
 const isTrip = computed(() => props.type === "App\\Models\\Trip");
 const isPhoto = computed(() => props.type === "App\\Models\\Photo");
@@ -45,6 +49,16 @@ const formatDate = (dateString) => {
                             attachment.prefecture.map((p) => p.name).join(", ")
                         }}
                     </span>
+                </div>
+                <!-- Mini Map -->
+                <div
+                    v-if="
+                        attachment.prefecture &&
+                        attachment.prefecture.length > 0
+                    "
+                    class="mt-2"
+                >
+                    <MiniMap :prefecture-name="attachment.prefecture[0].name" />
                 </div>
             </div>
         </Link>
@@ -89,6 +103,66 @@ const formatDate = (dateString) => {
                         "AIによる旅行プランの提案です。"
                     }}
                 </div>
+                <!-- Mini Map -->
+                <div v-if="attachment.prefecture_code" class="mt-2">
+                    <MiniMap :prefecture-code="attachment.prefecture_code" />
+                </div>
+
+                <!-- Voting Buttons (for Suggestion) -->
+                <div
+                    v-if="post"
+                    class="mt-3 flex flex-wrap gap-2 border-t pt-2 border-gray-100"
+                >
+                    <button
+                        @click.prevent="$emit('vote', 'want_to_go')"
+                        class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition"
+                        :class="
+                            post.is_want_to_go
+                                ? 'bg-orange-100 text-orange-600'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        "
+                    >
+                        <span>🙌</span> 行きたい！
+                        <span
+                            v-if="post.want_to_go_count > 0"
+                            class="ml-1 text-[10px]"
+                            >{{ post.want_to_go_count }}</span
+                        >
+                    </button>
+                    <button
+                        @click.prevent="$emit('vote', 'interested')"
+                        class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition"
+                        :class="
+                            post.is_interested
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        "
+                    >
+                        <span>👀</span> 気になる
+                        <span
+                            v-if="post.interested_count > 0"
+                            class="ml-1 text-[10px]"
+                            >{{ post.interested_count }}</span
+                        >
+                    </button>
+                    <button
+                        @click.prevent="$emit('vote', 'on_hold')"
+                        class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition"
+                        :class="
+                            post.is_on_hold
+                                ? 'bg-yellow-100 text-yellow-600'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        "
+                    >
+                        <span>🤔</span> 保留
+                        <span
+                            v-if="post.on_hold_count > 0"
+                            class="ml-1 text-[10px]"
+                            >{{ post.on_hold_count }}</span
+                        >
+                    </button>
+                </div>
+
                 <div class="mt-2 text-xs text-blue-600 font-medium">
                     プラン詳細を見る &rarr;
                 </div>

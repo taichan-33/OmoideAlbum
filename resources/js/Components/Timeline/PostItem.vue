@@ -101,6 +101,8 @@ const visitPost = () => {
                     v-if="post.attachment"
                     :type="post.attachment_type"
                     :attachment="post.attachment"
+                    :post="post"
+                    @vote="toggleReaction"
                 />
 
                 <!-- Actions -->

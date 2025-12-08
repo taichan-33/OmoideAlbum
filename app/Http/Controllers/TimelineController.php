@@ -19,11 +19,23 @@ class TimelineController extends Controller
                 $query->where('type', 'like');
             }, 'reactions as funs_count' => function ($query) {
                 $query->where('type', 'fun');
+            }, 'reactions as want_to_go_count' => function ($query) {
+                $query->where('type', 'want_to_go');
+            }, 'reactions as on_hold_count' => function ($query) {
+                $query->where('type', 'on_hold');
+            }, 'reactions as interested_count' => function ($query) {
+                $query->where('type', 'interested');
             }])
             ->withExists(['reactions as is_liked' => function ($query) use ($userId) {
                 $query->where('user_id', $userId)->where('type', 'like');
             }, 'reactions as is_fun' => function ($query) use ($userId) {
                 $query->where('user_id', $userId)->where('type', 'fun');
+            }, 'reactions as is_want_to_go' => function ($query) use ($userId) {
+                $query->where('user_id', $userId)->where('type', 'want_to_go');
+            }, 'reactions as is_on_hold' => function ($query) use ($userId) {
+                $query->where('user_id', $userId)->where('type', 'on_hold');
+            }, 'reactions as is_interested' => function ($query) use ($userId) {
+                $query->where('user_id', $userId)->where('type', 'interested');
             }]);
 
         if ($tab === 'my_posts') {
@@ -37,10 +49,31 @@ class TimelineController extends Controller
 
         $posts = $query->latest()->paginate(20)->withQueryString();
 
+        // Get statuses
+        $currentUser = Auth::user();
+        $partner = \App\Models\User::where('id', '!=', $userId)->first();  // Simple logic for now
+
         return Inertia::render('Timeline/Index', [
             'posts' => $posts,
             'currentTab' => $tab,
+            'userStatus' => $currentUser->only(['status', 'status_updated_at']),
+            'partnerStatus' => $partner ? $partner->only(['name', 'status', 'status_updated_at']) : null,
         ]);
+    }
+
+    public function updateStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'status' => 'nullable|string|max:50',
+        ]);
+
+        $user = $request->user();
+        $user->update([
+            'status' => $validated['status'],
+            'status_updated_at' => now(),
+        ]);
+
+        return back();
     }
 
     public function store(Request $request)
@@ -67,7 +100,7 @@ class TimelineController extends Controller
     public function toggleReaction(Request $request, Post $post)
     {
         $validated = $request->validate([
-            'type' => 'required|in:like,fun',
+            'type' => 'required|in:like,fun,want_to_go,on_hold,interested',
         ]);
 
         $type = $validated['type'];
@@ -155,10 +188,17 @@ class TimelineController extends Controller
     public function getAttachables(Request $request)
     {
         $user = Auth::user();
+        $tripId = $request->input('trip_id');
+
+        $photosQuery = \App\Models\Photo::whereIn('trip_id', $user->trips()->pluck('id'));
+
+        if ($tripId) {
+            $photosQuery->where('trip_id', $tripId);
+        }
 
         return response()->json([
-            'trips' => $user->trips()->latest()->take(10)->get(),
-            'photos' => \App\Models\Photo::whereIn('trip_id', $user->trips()->pluck('id'))->latest()->take(20)->get(),
+            'trips' => $user->trips()->latest()->get(),  // Get all trips for dropdown
+            'photos' => $photosQuery->latest()->take(20)->get(),
             'suggestions' => $user->suggestions()->latest()->take(10)->get(),
         ]);
     }
