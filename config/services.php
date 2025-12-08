@@ -34,5 +34,6 @@ return [
     ],
     'bot' => [
         'email' => env('BOT_EMAIL_ADDRESS', 'bot@example.com'),
+        'password' => env('BOT_PASSWORD', 'password'),
     ],
 ];

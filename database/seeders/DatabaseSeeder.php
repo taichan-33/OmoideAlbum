@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
             ['email' => config('services.bot.email')],
             [
                 'name' => '思い出ボット',
-                'password' => \Illuminate\Support\Facades\Hash::make('secure_password'),  // In production, this should be env or random
+                'password' => \Illuminate\Support\Facades\Hash::make(config('services.bot.password')),
                 'status' => 'みんなの思い出を応援中！',
             ]
         );
