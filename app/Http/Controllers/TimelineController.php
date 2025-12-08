@@ -23,7 +23,7 @@ class TimelineController extends Controller
 
         // Get statuses
         $currentUser = Auth::user();
-        $partner = \App\Models\User::where('id', '!=', $userId)->first();  // Simple logic for now
+        $partner = $currentUser->partner;
 
         return Inertia::render('Timeline/Index', [
             'posts' => $posts,
@@ -72,7 +72,7 @@ class TimelineController extends Controller
     public function toggleReaction(Request $request, Post $post)
     {
         $validated = $request->validate([
-            'type' => 'required|in:like,fun,want_to_go,on_hold,interested',
+            'type' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\ReactionType::class)],
         ]);
 
         $post->toggleReaction(Auth::id(), $validated['type']);
@@ -85,7 +85,6 @@ class TimelineController extends Controller
         $userId = Auth::id();
 
         // メインの投稿
-
         $post = Post::withReactionDetails($userId)
             ->with(['user', 'attachment', 'parentPost.user', 'parentPost.attachment'])
             ->findOrFail($post->id);
@@ -114,7 +113,7 @@ class TimelineController extends Controller
         $user = Auth::user();
         $tripId = $request->input('trip_id');
 
-        $photosQuery = \App\Models\Photo::whereIn('trip_id', $user->trips()->pluck('id'));
+        $photosQuery = $user->photos();
 
         if ($tripId) {
             $photosQuery->where('trip_id', $tripId);

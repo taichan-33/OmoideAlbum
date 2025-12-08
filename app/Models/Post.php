@@ -59,20 +59,20 @@ class Post extends Model
     {
         $query->withCount([
             'replies',
-            'reactions as likes_count' => fn($q) => $q->where('type', 'like'),
-            'reactions as funs_count' => fn($q) => $q->where('type', 'fun'),
-            'reactions as want_to_go_count' => fn($q) => $q->where('type', 'want_to_go'),
-            'reactions as on_hold_count' => fn($q) => $q->where('type', 'on_hold'),
-            'reactions as interested_count' => fn($q) => $q->where('type', 'interested'),
+            'reactions as likes_count' => fn($q) => $q->where('type', \App\Enums\ReactionType::LIKE),
+            'reactions as funs_count' => fn($q) => $q->where('type', \App\Enums\ReactionType::FUN),
+            'reactions as want_to_go_count' => fn($q) => $q->where('type', \App\Enums\ReactionType::WANT_TO_GO),
+            'reactions as on_hold_count' => fn($q) => $q->where('type', \App\Enums\ReactionType::ON_HOLD),
+            'reactions as interested_count' => fn($q) => $q->where('type', \App\Enums\ReactionType::INTERESTED),
         ]);
 
         if ($userId) {
             $query->withExists([
-                'reactions as is_liked' => fn($q) => $q->where('user_id', $userId)->where('type', 'like'),
-                'reactions as is_fun' => fn($q) => $q->where('user_id', $userId)->where('type', 'fun'),
-                'reactions as is_want_to_go' => fn($q) => $q->where('user_id', $userId)->where('type', 'want_to_go'),
-                'reactions as is_on_hold' => fn($q) => $q->where('user_id', $userId)->where('type', 'on_hold'),
-                'reactions as is_interested' => fn($q) => $q->where('user_id', $userId)->where('type', 'interested'),
+                'reactions as is_liked' => fn($q) => $q->where('user_id', $userId)->where('type', \App\Enums\ReactionType::LIKE),
+                'reactions as is_fun' => fn($q) => $q->where('user_id', $userId)->where('type', \App\Enums\ReactionType::FUN),
+                'reactions as is_want_to_go' => fn($q) => $q->where('user_id', $userId)->where('type', \App\Enums\ReactionType::WANT_TO_GO),
+                'reactions as is_on_hold' => fn($q) => $q->where('user_id', $userId)->where('type', \App\Enums\ReactionType::ON_HOLD),
+                'reactions as is_interested' => fn($q) => $q->where('user_id', $userId)->where('type', \App\Enums\ReactionType::INTERESTED),
             ]);
         }
 

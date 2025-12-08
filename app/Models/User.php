@@ -63,4 +63,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(Post::class);
     }
+
+    /**
+     * UserはTripを通じてPhotoをたくさん持っている
+     */
+    public function photos()
+    {
+        return $this->hasManyThrough(Photo::class, Trip::class);
+    }
+
+    /**
+     * パートナー（自分以外のユーザー）を取得
+     * 現状は簡易的に「自分以外の最初の一人」とする
+     */
+    public function getPartnerAttribute()
+    {
+        return self::where('id', '!=', $this->id)->first();
+    }
 }
