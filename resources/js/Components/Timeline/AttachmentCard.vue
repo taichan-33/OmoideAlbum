@@ -170,12 +170,22 @@ const formatDate = (dateString) => {
         </Link>
 
         <!-- Post (Quote Retweet) -->
-        <div v-else-if="isPost" class="p-3 bg-white">
+        <Link
+            v-else-if="isPost"
+            :href="route('timeline.show', attachment.id)"
+            class="block p-3 bg-white hover:bg-gray-100 transition"
+        >
             <div class="flex items-center gap-2 mb-2">
                 <div
                     class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600"
                 >
-                    {{ attachment.user?.name?.charAt(0) }}
+                    <img
+                        v-if="attachment.user?.profile_photo_url"
+                        :src="attachment.user.profile_photo_url"
+                        :alt="attachment.user.name"
+                        class="w-full h-full rounded-full object-cover"
+                    />
+                    <span v-else>{{ attachment.user?.name?.charAt(0) }}</span>
                 </div>
                 <span class="font-bold text-sm text-gray-800">{{
                     attachment.user?.name
@@ -184,7 +194,7 @@ const formatDate = (dateString) => {
                     formatDate(attachment.created_at)
                 }}</span>
             </div>
-            <div class="text-sm text-gray-800 mb-2">
+            <div class="text-sm text-gray-800 mb-2 line-clamp-3">
                 {{ attachment.content }}
             </div>
             <!-- Nested Attachment (if any) -->
@@ -194,6 +204,6 @@ const formatDate = (dateString) => {
                 :attachment="attachment.attachment"
                 class="mt-2 text-xs"
             />
-        </div>
+        </Link>
     </div>
 </template>

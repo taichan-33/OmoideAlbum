@@ -52,7 +52,10 @@ const visitPost = () => {
 </script>
 
 <template>
-    <div class="bg-white p-4 rounded-lg shadow border border-gray-100">
+    <div
+        class="bg-white p-4 rounded-lg shadow border border-gray-100 cursor-pointer hover:bg-gray-50 transition"
+        @click="visitPost"
+    >
         <div class="flex gap-3">
             <div class="flex-shrink-0">
                 <div class="flex-shrink-0">
@@ -71,15 +74,13 @@ const visitPost = () => {
                     <Link
                         :href="route('timeline.show', post.id)"
                         class="text-xs text-gray-500 hover:underline"
+                        @click.stop
                     >
                         {{ formatDate(post.created_at) }}
                     </Link>
                 </div>
 
-                <div
-                    class="mt-1 text-gray-800 whitespace-pre-wrap hover:bg-gray-50 p-1 -ml-1 rounded transition cursor-pointer"
-                    @click="visitPost"
-                >
+                <div class="mt-1 text-gray-800 whitespace-pre-wrap">
                     <template
                         v-for="(segment, index) in parseContent(post.content)"
                         :key="index"
@@ -105,19 +106,21 @@ const visitPost = () => {
                 </div>
 
                 <!-- Attachment -->
-                <AttachmentCard
-                    v-if="post.attachment"
-                    :type="post.attachment_type"
-                    :attachment="post.attachment"
-                    :post="post"
-                    @vote="toggleReaction"
-                />
+                <div @click.stop>
+                    <AttachmentCard
+                        v-if="post.attachment"
+                        :type="post.attachment_type"
+                        :attachment="post.attachment"
+                        :post="post"
+                        @vote="toggleReaction"
+                    />
+                </div>
 
                 <!-- Actions -->
                 <div class="mt-3 flex gap-6 text-gray-500 text-sm">
                     <!-- Reply -->
                     <button
-                        @click="$emit('reply', post)"
+                        @click.stop="$emit('reply', post)"
                         class="hover:text-blue-500 flex items-center gap-1 transition"
                     >
                         <i class="bi bi-chat"></i>
@@ -128,7 +131,7 @@ const visitPost = () => {
 
                     <!-- Quote Retweet -->
                     <button
-                        @click="$emit('quote', post)"
+                        @click.stop="$emit('quote', post)"
                         class="hover:text-green-500 flex items-center gap-1 transition"
                     >
                         <i class="bi bi-arrow-repeat"></i>
@@ -136,7 +139,7 @@ const visitPost = () => {
 
                     <!-- Like -->
                     <button
-                        @click="toggleReaction('like')"
+                        @click.stop="toggleReaction('like')"
                         class="flex items-center gap-1 transition"
                         :class="
                             post.is_liked
@@ -158,7 +161,7 @@ const visitPost = () => {
 
                     <!-- Fun -->
                     <button
-                        @click="toggleReaction('fun')"
+                        @click.stop="toggleReaction('fun')"
                         class="flex items-center gap-1 transition"
                         :class="
                             post.is_fun

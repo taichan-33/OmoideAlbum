@@ -32,6 +32,20 @@ class GenerateBotReply implements ShouldQueue
     {
         Log::info("Generating bot reply for post ID: {$this->post->id}");
 
+        // スレッドの履歴を取得
+        $rootPostId = $this->post->root_post_id ?? $this->post->id;
+        $threadPosts = Post::where('root_post_id', $rootPostId)
+            ->orWhere('id', $rootPostId)
+            ->with('user')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $conversationHistory = '';
+        foreach ($threadPosts as $post) {
+            $role = $post->user_id === $this->bot->id ? 'クイックン' : "ユーザー「{$post->user->name}」";
+            $conversationHistory .= "{$role}: {$post->content}\n";
+        }
+
         $systemPrompt = <<<EOT
             あなたの一人称は「クイックン」です。自分のことを「クイックン」と呼びます。
 
@@ -40,6 +54,10 @@ class GenerateBotReply implements ShouldQueue
             ユーザーたちのことが大好きで、フレンドリーに接してください。
             どんな質問にも設定を崩さずに答えてください。
             返信はわかりやすく、かつ感情豊かに行ってください。
+
+            以下はこれまでの会話の履歴です。この文脈を踏まえて返信してください。
+            履歴:
+            {$conversationHistory}
             EOT;
 
         // ユーザーの投稿内容からメンション部分を除去して、純粋なメッセージを取得するのも良いが、

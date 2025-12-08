@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
-import { Link, usePage } from "@inertiajs/vue3";
+import { Link, usePage, router } from "@inertiajs/vue3";
 import axios from "axios";
 
 const page = usePage();
@@ -110,13 +110,12 @@ onUnmounted(() => {
                             class="px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition duration-150 ease-in-out"
                             :class="{ 'bg-blue-50': !notification.read_at }"
                         >
-                            <a
-                                :href="notification.data.url"
-                                @click.prevent="
+                            <div
+                                @click="
                                     markAsRead(notification.id);
-                                    $inertia.visit(notification.data.url);
+                                    router.visit(notification.data.url);
                                 "
-                                class="flex items-start gap-3"
+                                class="flex items-start gap-3 cursor-pointer"
                             >
                                 <div class="flex-shrink-0 text-xl mt-1">
                                     {{ notification.data.icon || "🔔" }}
@@ -131,7 +130,7 @@ onUnmounted(() => {
                                         {{ notification.created_at }}
                                     </p>
                                 </div>
-                            </a>
+                            </div>
                         </div>
                     </div>
                 </div>

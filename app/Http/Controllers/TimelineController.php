@@ -147,27 +147,28 @@ class TimelineController extends Controller
     {
         $userId = Auth::id();
 
-        // メインの投稿
-        $post = Post::withReactionDetails($userId)
-            ->with(['user', 'attachment', 'parentPost.user', 'parentPost.attachment'])
-            ->findOrFail($post->id);
+        // 1. ルート投稿を特定
+        $rootPostId = $post->root_post_id ?? $post->id;
 
-        // 親投稿 (もしあれば)
-        if ($post->parent_post_id) {
-            $post->setRelation('parentPost', Post::withReactionDetails($userId)->with(['user', 'attachment'])->find($post->parent_post_id));
-        }
+        // 2. ルート投稿を取得
+        // もし表示対象がルートならそれをそのまま使うが、リレーションロードのために再取得が無難
+        $rootPost = Post::withReactionDetails($userId)
+            ->with(['user', 'attachment'])
+            ->findOrFail($rootPostId);
 
-        // 返信一覧
-        $replies = $post
-            ->replies()
+        // 3. スレッド内の全投稿を取得 (ルート以外)
+        // 時系列順に取得
+        $allReplies = Post::where('root_post_id', $rootPostId)
+            ->where('id', '!=', $rootPostId)
             ->withReactionDetails($userId)
-            ->with(['user', 'attachment', 'parentPost.user', 'parentPost.attachment'])
-            ->latest()
+            ->with(['user', 'attachment', 'parentPost.user'])
+            ->orderBy('created_at', 'asc')
             ->get();
 
         return Inertia::render('Timeline/Show', [
-            'post' => $post,
-            'replies' => $replies,
+            'post' => $post,  // 現在表示しようとしている投稿 (フォーカス用)
+            'rootPost' => $rootPost,  // スレッドの親
+            'replies' => $allReplies,  // スレッド内の全返信 (フラット)
         ]);
     }
 

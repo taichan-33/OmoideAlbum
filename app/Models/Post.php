@@ -17,12 +17,44 @@ class Post extends Model
         'content',
         'attachment_type',
         'attachment_id',
+        'attachment_id',
         'parent_post_id',
+        'root_post_id',
     ];
 
     protected static function booted()
     {
+        static::creating(function ($post) {
+            if ($post->parent_post_id) {
+                $parent = Post::find($post->parent_post_id);
+                $post->root_post_id = $parent->root_post_id ?? $parent->id;
+            } else {
+                // 親がない場合は自分自身がルートになるが、IDはまだないのでnullのままにしておくか、
+                // createdで更新するか。
+                // ここではnullableなのでnullにしておき、createdで更新する手もあるが、
+                // IDが決まるのはsave後。
+                // ルート投稿の場合はroot_post_id = idとしたいなら、createdでやる必要がある。
+                // しかし、root_post_idが自分自身を指す必要があるか？
+                // 「スレッドのルート」という意味なら、ルート投稿は自分自身を指すのが自然。
+            }
+        });
+
         static::created(function ($post) {
+            // ルート投稿の場合、自分自身をroot_post_idに設定
+            if (is_null($post->parent_post_id) && is_null($post->root_post_id)) {
+                $post->root_post_id = $post->id;
+                $post->saveQuietly();
+            }
+
+            // 子投稿でroot_post_idが未設定の場合のフォールバック
+            if ($post->parent_post_id && is_null($post->root_post_id)) {
+                $parent = Post::find($post->parent_post_id);
+                if ($parent) {
+                    $post->root_post_id = $parent->root_post_id ?? $parent->id;
+                    $post->saveQuietly();
+                }
+            }
+
             // メンション検出 (@ユーザー名)
             // 空白、改行、全角スペースなどで区切られた @ から始まる文字列を抽出
             if (preg_match_all("/@([^\s\u{3000}]+)/u", $post->content, $matches)) {
