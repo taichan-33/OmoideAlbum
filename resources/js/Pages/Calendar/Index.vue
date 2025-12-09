@@ -24,6 +24,10 @@ const attributes = computed(() => [
 
 const showModal = ref(false);
 const selectedDate = ref(null);
+const initialPage = ref({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+});
 
 const onDayClick = (day) => {
     const dayStr = day.id; // 'YYYY-MM-DD'
@@ -84,6 +88,7 @@ const isEnd = (day, trip) => day.id === trip.end;
                     <VCalendar
                         expanded
                         :attributes="attributes"
+                        :initial-page="initialPage"
                         class="custom-calendar"
                     >
                         <template #day-content="{ day, attributes }">
