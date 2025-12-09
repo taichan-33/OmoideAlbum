@@ -143,6 +143,14 @@ Route::get('/timeline/{post}', [App\Http\Controllers\TimelineController::class, 
     ->name('timeline.show')
     ->middleware('auth');
 
+// Stories
+Route::get('/stories', [App\Http\Controllers\StoryController::class, 'index'])
+    ->name('stories.index')
+    ->middleware('auth');
+Route::get('/stories/{trip}', [App\Http\Controllers\StoryController::class, 'show'])
+    ->name('stories.show')
+    ->middleware('auth');
+
 // Notifications
 Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])
     ->name('notifications.index')

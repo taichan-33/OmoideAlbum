@@ -1,14 +1,17 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 import { Head, Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import debounce from "lodash/debounce";
+import StoryCircle from "@/Components/Story/StoryCircle.vue";
+import StoryViewer from "@/Components/Story/StoryViewer.vue";
+import axios from "axios";
 
 const props = defineProps({
     trips: Object,
     filters: Object,
     tags: Array,
-    onThisDayTrips: Array, // 追加
+    onThisDayTrips: Array,
 });
 
 const viewMode = ref("grid"); // 'grid' or 'timeline'
@@ -16,6 +19,31 @@ const viewMode = ref("grid"); // 'grid' or 'timeline'
 // 検索用のリアクティブデータ
 const search = ref(props.filters.prefecture || "");
 const selectedTag = ref(props.filters.tag_id || "");
+
+// Stories
+const stories = ref([]);
+const activeStoryId = ref(null);
+
+const fetchStories = async () => {
+    try {
+        const response = await axios.get(route("stories.index"));
+        stories.value = response.data;
+    } catch (error) {
+        console.error("Failed to fetch stories:", error);
+    }
+};
+
+const openStory = (id) => {
+    activeStoryId.value = id;
+};
+
+const closeStory = () => {
+    activeStoryId.value = null;
+};
+
+onMounted(() => {
+    fetchStories();
+});
 
 // 入力に合わせて自動検索 (Debounce)
 const handleSearch = debounce(() => {
@@ -42,7 +70,7 @@ watch([search, selectedTag], handleSearch);
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <!-- Header Section -->
             <div
-                class="flex flex-col md:flex-row justify-between items-center mb-12 gap-4"
+                class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4"
             >
                 <div>
                     <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
@@ -56,6 +84,21 @@ watch([search, selectedTag], handleSearch);
                 >
                     <span class="text-xl">+</span> 新しい旅を記録
                 </Link>
+            </div>
+
+            <!-- Stories Section -->
+            <div
+                v-if="stories.length > 0"
+                class="mb-12 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide"
+            >
+                <div class="flex gap-4 sm:gap-6">
+                    <StoryCircle
+                        v-for="story in stories"
+                        :key="story.id"
+                        :story="story"
+                        @click="openStory(story.id)"
+                    />
+                </div>
             </div>
 
             <!-- On This Day Section -->
@@ -467,5 +510,12 @@ watch([search, selectedTag], handleSearch);
                 </div>
             </div>
         </div>
+
+        <!-- Story Viewer Modal -->
+        <StoryViewer
+            v-if="activeStoryId"
+            :story-id="activeStoryId"
+            @close="closeStory"
+        />
     </AppLayout>
 </template>
