@@ -38,10 +38,10 @@ class PostOnThisDayTrips extends Command
         }
 
         // Find the Bot user
-        $botUser = \App\Models\User::where('email', config('services.bot.email'))->first();
+        $botUser = \App\Models\User::getBot();
 
         if (!$botUser) {
-            $this->error('Bot user not found. Please run seeders.');
+            $this->error('Bot user not found. Please run seeders or check config.');
             return;
         }
 

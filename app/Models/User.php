@@ -14,6 +14,23 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * Botユーザーを取得する（存在しない場合はnull）
+     */
+    public static function getBot(): ?self
+    {
+        // 1. Configのメールアドレスで検索
+        $email = config('services.bot.email');
+        if ($email) {
+            $bot = self::where('email', $email)->first();
+            if ($bot)
+                return $bot;
+        }
+
+        // 2. 名前でフォールバック検索
+        return self::where('name', 'クイックン')->first();
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
