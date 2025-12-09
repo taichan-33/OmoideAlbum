@@ -47,6 +47,14 @@ Route::delete('/comments/{comment}', [App\Http\Controllers\PhotoCommentControlle
     ->name('photo-comments.destroy')
     ->middleware('auth');
 
+Route::resource('scraps', \App\Http\Controllers\ScrapController::class)
+    ->only(['index', 'store', 'destroy'])
+    ->middleware('auth');
+
+Route::resource('calendar', \App\Http\Controllers\CalendarController::class)
+    ->only(['index'])
+    ->middleware('auth');
+
 // タグ関連のルート
 Route::resource('tags', App\Http\Controllers\TagController::class)
     ->only(['index', 'store', 'destroy'])  // 今回は一覧、保存、削除だけ使う

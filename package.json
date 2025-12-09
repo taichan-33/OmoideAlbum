@@ -7,7 +7,7 @@
         "dev": "vite"
     },
     "devDependencies": {
-        "@popperjs/core": "^2.11.6",
+        "@popperjs/core": "^2.11.8",
         "@tailwindcss/vite": "^4.0.0",
         "axios": "^1.11.0",
         "bootstrap": "^5.2.3",
@@ -29,6 +29,7 @@
         "lodash": "^4.17.21",
         "marked": "^17.0.1",
         "trix": "^2.1.15",
+        "v-calendar": "^3.1.2",
         "vue": "^3.5.25",
         "vue-chartjs": "^5.3.3",
         "ziggy-js": "^2.6.0"

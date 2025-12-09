@@ -89,12 +89,13 @@ class TripController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
         // ★ 全てのタグを取得してビューに渡す
         $tags = Tag::all();
         return Inertia::render('Trips/Create', [
-            'tags' => $tags
+            'tags' => $tags,
+            'initialDate' => $request->query('date'),
         ]);
     }
 

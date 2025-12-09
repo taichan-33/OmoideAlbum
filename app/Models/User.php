@@ -115,4 +115,9 @@ class User extends Authenticatable
             ->withPivot('obtained_at')
             ->withTimestamps();
     }
+
+    public function scraps(): HasMany
+    {
+        return $this->hasMany(Scrap::class);
+    }
 }

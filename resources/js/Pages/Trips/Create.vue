@@ -6,12 +6,13 @@ import PrefectureSelector from "@/Components/PrefectureSelector.vue";
 
 const props = defineProps({
     tags: Array,
+    initialDate: String,
 });
 
 const form = useForm({
     title: "",
     prefecture: [], // Array for multi-select
-    start_date: "",
+    start_date: props.initialDate || "",
     end_date: "",
     nights: 0,
     description: "",
