@@ -1,0 +1,38 @@
+steps:
+  # 1. Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/$PROJECT_ID/omoide-album:$COMMIT_SHA",
+        "-t",
+        "gcr.io/$PROJECT_ID/omoide-album:latest",
+        ".",
+      ]
+
+  # 2. Push the container image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/omoide-album:$COMMIT_SHA"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/omoide-album:latest"]
+
+  # 3. Deploy container to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "omoide-album"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/omoide-album:$COMMIT_SHA"
+      - "--region"
+      - "asia-northeast1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated" # 認証ありにする場合は外す
+
+images:
+  - "gcr.io/$PROJECT_ID/omoide-album:$COMMIT_SHA"
+  - "gcr.io/$PROJECT_ID/omoide-album:latest"

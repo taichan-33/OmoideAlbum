@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import laravel from "laravel-vite-plugin";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
     plugins: [
@@ -21,16 +22,40 @@ export default defineConfig({
                 },
             },
         }),
+        VitePWA({
+            registerType: "autoUpdate",
+            outDir: "public/build",
+            manifest: {
+                name: "Omoide Album",
+                short_name: "Omoide",
+                description: "Couple Trip & Memory Album",
+                theme_color: "#ffffff",
+                start_url: "/",
+                scope: "/",
+                icons: [
+                    {
+                        src: "/icons/icon-192x192.png",
+                        sizes: "192x192",
+                        type: "image/png",
+                    },
+                    {
+                        src: "/icons/icon-512x512.png",
+                        sizes: "512x512",
+                        type: "image/png",
+                    },
+                ],
+            },
+            devOptions: {
+                enabled: true,
+            },
+            workbox: {
+                maximumFileSizeToCacheInBytes: 5000000,
+                navigateFallback: null,
+            },
+        }),
     ],
 
-    // ★★★ (追加) この設定を追加 ★★★
     optimizeDeps: {
-        /**
-         * 'jvectormap-content' パッケージは ESモジュールではない
-         * (jQueryのグローバルスコープに依存する古い形式のJS) ため、
-         * Viteの依存関係スキャナから除外(exclude)する。
-         * これにより、"could not be resolved" エラーを回避する。
-         */
         exclude: ["jvectormap-content"],
     },
 });
