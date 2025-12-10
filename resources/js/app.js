@@ -10,9 +10,11 @@ import { ZiggyVue } from "ziggy-js";
 
 import VCalendar from "v-calendar";
 import "v-calendar/style.css";
-import { registerSW } from "virtual:pwa-register";
+// import { registerSW } from "virtual:pwa-register";
 
-registerSW({ immediate: true });
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js");
+}
 
 const appName = import.meta.env.VITE_APP_NAME || "OmoideAlbum";
 

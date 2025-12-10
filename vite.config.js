@@ -24,7 +24,7 @@ export default defineConfig({
         }),
         VitePWA({
             registerType: "autoUpdate",
-            outDir: "public/build",
+            outDir: "public",
             manifest: {
                 name: "Omoide Album",
                 short_name: "Omoide",
@@ -46,11 +46,12 @@ export default defineConfig({
                 ],
             },
             devOptions: {
-                enabled: true,
+                enabled: false,
             },
             workbox: {
                 maximumFileSizeToCacheInBytes: 5000000,
                 navigateFallback: null,
+                globIgnores: ["**/*.map", "**/manifest.webmanifest"],
             },
         }),
     ],

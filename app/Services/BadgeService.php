@@ -93,7 +93,10 @@ class BadgeService
         // 2. Bot取得 (Userモデルの共通メソッドを利用)
         $botUser = User::getBot() ?? $user;
 
-        // 3. 通知ジョブ
+        // 3. 通知ジョブ (タイムライン投稿)
         \App\Jobs\GenerateBadgeNotification::dispatch($user, $badge, $botUser);
+
+        // 4. プッシュ通知
+        $user->notify(new \App\Notifications\BadgeEarned($badge));
     }
 }

@@ -34,7 +34,37 @@ class PostInteracted extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+        $prefs = $notifiable->notification_preferences ?? [];
+
+        // Default to true if not set
+        if (!isset($prefs['post_interacted']) || $prefs['post_interacted']) {
+            $channels[] = \NotificationChannels\WebPush\WebPushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    /**
+     * Get the WebPush representation of the notification.
+     */
+    public function toWebPush($notifiable, $notification)
+    {
+        $message = match ($this->type) {
+            'reply' => "{$this->actor->name}さんが返信しました",
+            'quote' => "{$this->actor->name}さんが引用しました",
+            'like' => "{$this->actor->name}さんがいいねしました",
+            'want_to_go' => "{$this->actor->name}さんが行きたい！しました",
+            'mention' => "{$this->actor->name}さんがメンションしました",
+            default => "{$this->actor->name}さんが反応しました",
+        };
+
+        return (new \NotificationChannels\WebPush\WebPushMessage)
+            ->title('新着通知')
+            ->body($message)
+            ->icon($this->actor->profile_photo_url)
+            ->action('見る', 'view_post')
+            ->data(['url' => route('timeline.show', $this->post->id)]);
     }
 
     /**

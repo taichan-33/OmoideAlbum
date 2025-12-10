@@ -1,5 +1,6 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
+import NotificationSettings from "@/Components/NotificationSettings.vue";
 import { useForm, usePage } from "@inertiajs/vue3";
 import { ref } from "vue";
 
@@ -120,7 +121,8 @@ const submit = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                            </div>
+
 
                         <form @submit.prevent="submit">
                             <!-- Profile Photo -->
@@ -286,6 +288,8 @@ const submit = () => {
                         </form>
                     </div>
                 </div>
+                <!-- 通知設定 -->
+                <NotificationSettings class-name="mt-6" />
             </div>
         </div>
     </AppLayout>

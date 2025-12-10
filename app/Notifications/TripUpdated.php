@@ -34,7 +34,28 @@ class TripUpdated extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+        $prefs = $notifiable->notification_preferences ?? [];
+
+        // Default to true if not set
+        if (!isset($prefs['trip_updated']) || $prefs['trip_updated']) {
+            $channels[] = \NotificationChannels\WebPush\WebPushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    /**
+     * Get the WebPush representation of the notification.
+     */
+    public function toWebPush($notifiable, $notification)
+    {
+        return (new \NotificationChannels\WebPush\WebPushMessage)
+            ->title('旅行の更新')
+            ->body($this->message)
+            ->icon('/icons/icon-192x192.png')
+            ->action('見る', 'view_trip')
+            ->data(['url' => $this->url]);
     }
 
     /**

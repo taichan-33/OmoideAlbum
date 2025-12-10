@@ -10,4 +10,6 @@
     --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
         "Noto Color Emoji";
+    --font-serif: "Zen Old Mincho", ui-serif, Georgia, Cambria,
+        "Times New Roman", Times, serif;
 }

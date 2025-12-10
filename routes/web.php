@@ -171,3 +171,16 @@ Route::post('/notifications/read-all', [App\Http\Controllers\NotificationControl
 Route::post('/notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'read'])
     ->name('notifications.read')
     ->middleware('auth');
+
+// Push Notifications
+Route::post('/push/subscribe', [App\Http\Controllers\PushSubscriptionController::class, 'store'])
+    ->name('push.subscribe')
+    ->middleware('auth');
+
+Route::post('/push/unsubscribe', [App\Http\Controllers\PushSubscriptionController::class, 'destroy'])
+    ->name('push.unsubscribe')
+    ->middleware('auth');
+
+Route::post('/push/preferences', [App\Http\Controllers\PushSubscriptionController::class, 'updatePreferences'])
+    ->name('push.preferences')
+    ->middleware('auth');
