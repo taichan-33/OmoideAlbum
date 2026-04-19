@@ -198,7 +198,7 @@ class SuggestionController extends Controller
             $response = Http::withToken($apiKey)
                 ->timeout(120)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-5.1-2025-11-13',
+                    'model' => config('services.openai.model'),
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         [

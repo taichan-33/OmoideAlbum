@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Log;
 
 class AiPlannerService
 {
-    private const MODEL = 'gpt-5.1-2025-11-13';
-
     /**
      * AIからの応答を生成する
      *
@@ -38,7 +36,7 @@ class AiPlannerService
         ])
             ->timeout(120)
             ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => self::MODEL,
+                'model' => config('services.openai.model'),
                 'messages' => $messages,
             ]);
 

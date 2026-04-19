@@ -1,4 +1,3 @@
-```
 <script setup>
 import { marked } from "marked";
 import { ref, computed, onMounted, watch, nextTick } from "vue";
@@ -1755,4 +1754,3 @@ const onEachFeature = (feature, layer) => {
     }
 }
 </style>
-```

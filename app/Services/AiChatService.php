@@ -8,11 +8,13 @@ use Illuminate\Support\Facades\Log;
 class AiChatService
 {
     protected $apiKey;
+    protected $model;
     protected $baseUrl = 'https://api.openai.com/v1/chat/completions';
 
     public function __construct()
     {
         $this->apiKey = config('services.openai.key');
+        $this->model = config('services.openai.model');
     }
 
     public function generateReply(string $userMessage, string $systemPrompt): ?string
@@ -26,7 +28,7 @@ class AiChatService
             $response = Http::withToken($this->apiKey)
                 ->timeout(300)
                 ->post($this->baseUrl, [
-                    'model' => 'gpt-5.1-2025-11-13',  // Cost-effective and fast
+                    'model' => $this->model,
                     'messages' => [
                         ['role' => 'system', 'content' => $systemPrompt],
                         ['role' => 'user', 'content' => $userMessage],
