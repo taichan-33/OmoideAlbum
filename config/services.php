@@ -31,7 +31,7 @@ return [
     ],
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
-        'model' => env('OPENAI_MODEL', 'gpt-5.1-2025-11-13'),
+        'model' => env('OPENAI_MODEL', 'gpt-5.4'),
     ],
     'bot' => [
         'email' => env('BOT_EMAIL_ADDRESS', 'bot@example.com'),

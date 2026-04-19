@@ -2,31 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\GenerateSuggestionAction;
 use App\Models\Suggestion;
-use App\Models\Trip;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SuggestionController extends Controller
 {
-    /**
-     * Trix Editor のHTMLをクリーンアップする (AIに渡すため)
-     */
-    private function cleanTrixContent(string $htmlContent): string
-    {
-        $cleaned = preg_replace('/<figure data-trix-attachment=".*?figure>/', '', $htmlContent);
-        $text = strip_tags($cleaned);
-        $text = preg_replace('/(\s\s+)/', ' ', $text);
-        return trim($text);
-    }
-
     /**
      * AI旅行提案の一覧を表示 (★検索機能付きに改修)
      */
@@ -75,11 +61,8 @@ class SuggestionController extends Controller
     /**
      * AIに新しい旅行提案を生成させ、保存する (★プロンプトを大幅強化)
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, GenerateSuggestionAction $generateSuggestion): RedirectResponse
     {
-        $user = Auth::user();
-
-        // ★ (追加) 1. 任意入力フォームのバリデーション
         $validatedOptional = $request->validate([
             'optional_destination' => 'nullable|string|max:255',
             'optional_season' => 'nullable|string|max:255',
@@ -88,176 +71,16 @@ class SuggestionController extends Controller
             'optional_memo' => 'nullable|string|max:500',
         ]);
 
-        // 2. 過去の「旅行」データを取得 (タグによる絞り込み)
-        $travelTagNames = ['旅行', '宿泊'];
-        $trips = $user
-            ->trips()
-            ->with('tags')
-            ->whereHas('tags', function ($query) use ($travelTagNames) {
-                $query->whereIn('name', $travelTagNames);
-            })
-            ->get();
-
-        if ($trips->isEmpty()) {
-            return redirect()
-                ->route('suggestions.index')
-                ->with('error', '提案を生成するための「' . implode('・', $travelTagNames) . '」タグがついた思い出がありません。');
-        }
-
-        // 3. 過去の「AI提案履歴」を取得 (重複回避のため)
-        $suggestions = $user->suggestions()->get();
-
-        // 4. AIに渡すためのプロンプト（過去データ）を整形
-        $pastData = "--- ユーザーの過去の旅行履歴 (分析対象) ---\n";
-        foreach ($trips as $index => $trip) {
-            $pastData .= ($index + 1) . '. ';
-            $pastData .= 'タイトル: ' . $trip->title . ' | ';
-            $prefectureStr = is_array($trip->prefecture) ? implode(', ', $trip->prefecture) : $trip->prefecture;
-            $pastData .= '場所: ' . $prefectureStr . ' | ';
-            $pastData .= '泊数: ' . $trip->nights . '泊 | ';
-            if ($trip->tags->isNotEmpty()) {
-                $pastData .= 'タグ: ' . $trip->tags->pluck('name')->join(', ') . ' | ';
-            }
-            if ($trip->description) {
-                $pastData .= 'メモ: ' . $this->cleanTrixContent($trip->description) . "\n";
-            } else {
-                $pastData .= "メモ: (記載なし)\n";
-            }
-        }
-
-        if ($suggestions->isNotEmpty()) {
-            $pastData .= "\n--- AIによる過去の提案履歴 (これとは重複させないこと) ---\n";
-            foreach ($suggestions as $index => $suggestion) {
-                $pastData .= ($index + 1) . '. ' . $suggestion->title . "\n";
-            }
-        }
-
-        // ★★★ (追加) 5. AIに渡すプロンプトに「任意入力」を追加 ★★★
-        $pastData .= "\n--- ユーザーからの追加リクエスト (最優先事項) ---\n";
-        $hasOptionalRequest = false;
-        foreach ($validatedOptional as $key => $value) {
-            if (!empty($value)) {
-                $pastData .= $key . ': ' . $value . "\n";
-                $hasOptionalRequest = true;
-            }
-        }
-        if (!$hasOptionalRequest) {
-            $pastData .= "（今回は特に追加リクエストなし）\n";
-        }
-        // ★★★ (追加) ここまで ★★★
-
-        $apiKey = config('services.openai.key');
-        if (empty($apiKey)) {
-            Log::error('OpenAI API Key is not configured.');
-            return redirect()
-                ->route('suggestions.index')
-                ->with('error', 'AI機能が設定されていません。');
-        }
-
-        // 6. (★修正) AIへの命令（プロンプト）を「宿泊先」「名産物」を追加した最終版に変更
-        $systemPrompt = 'あなたは優秀な旅行プランナーです。ユーザーの過去の旅行データを分析し、彼らが次に行きたくなるような最高の旅行プランを1つ提案してください。
-**最重要：** ユーザーから「追加リクエスト (最優先事項)」が提供されている場合は、その内容を**最優先**して、旅行プランを提案してください。
-**重要：** 「AIによる過去の提案履歴」を読み、それらとは**絶対に重複しない**、全く新しい場所やテーマの提案を行ってください。
-
-提案には「行くべき場所」「推奨する泊数」「具体的な観光スポット」「そのプランをお勧めする理由」に加えて、
-**「おすすめの宿泊先（宿・ホテルの具体名やエリア）」**と**「その地域の代表的な名産物や料理」**も必ず含めてください。
-タイトルや説明文には、**適度に絵文字 (例: ✈️, ♨️, 🍣) を使い**、魅力的で楽しい提案にしてください。
-あなたの分析に基づき、この提案がどれだけユーザーの好みに合致しているかを1〜5の整数で「おすすめ度」として評価してください。
-
-レスポンスは必ず以下のキーを持つJSONオブジェクト形式で、キー以外の文字列は一切含めないでください:
-1. `title`: 提案する旅行プランのキャッチーなタイトル (文字列)。
-2. `recommendation_score`: 1〜5の「おすすめ度」 (整数)。
-3. `content`: 提案の詳細な説明と、なぜそれをお勧めするのかの理由。以下のJSONオブジェクト形式で出力してください:
-   {
-     "title": "提案のキャッチコピー（例：夫婦でゆったり温泉旅）",
-     "description": "提案の導入文や全体的な説明（Markdown可）",
-     "points": [
-       { "title": "ポイント1のタイトル", "description": "ポイント1の詳細説明" },
-       { "title": "ポイント2のタイトル", "description": "ポイント2の詳細説明" }
-     ]
-   }
-4. `accommodation`: おすすめの宿泊先（宿・ホテルの具体名やエリア）。URLがある場合は必ず含めてください (文字列)。
-5. `local_food`: その地域の代表的な名産物や料理 (例: 「カニ、但馬牛、出石そば」)。URLがある場合は必ず含めてください (文字列)。
-6. `itinerary`: 「モデル日程表」を、以下の形式のJSON配列 (Array) で作成してください。
-   [
-     {
-       "day": 1,
-       "spots": [
-         { "time": "10:00", "name": "〇〇空港到着", "description": "空港でレンタカーを借りて出発。", "url": "https://example.com" },
-         { "time": "12:00", "name": "△△レストラン", "description": "名物の海鮮丼ランチ。", "url": "https://restaurant.example.com" }
-       ]
-     },
-     {
-       "day": 2,
-       "spots": [ ... ]
-     }
-   ]
-';
-
         try {
-            $response = Http::withToken($apiKey)
-                ->timeout(120)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => config('services.openai.model'),
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemPrompt  // ★ 強化したプロンプトを適用
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $pastData
-                        ]
-                    ],
-                ]);
-
-            if ($response->failed()) {
-                Log::error('OpenAI API error (Suggestion): ' . $response->body());
-                return redirect()
-                    ->route('suggestions.index')
-                    ->with('error', 'AIとの通信に失敗しました。');
-            }
-
-            // 8. レスポンス処理
-            $jsonString = $response->json('choices.0.message.content');
-            $suggestionData = json_decode($jsonString, true);
-
-            // (★修正) 'accommodation', 'local_food' もチェック
-            if (
-                json_last_error() !== JSON_ERROR_NONE ||
-                !isset($suggestionData['title']) ||
-                !isset($suggestionData['content']) ||
-                !isset($suggestionData['recommendation_score']) ||
-                !isset($suggestionData['itinerary']) ||
-                !isset($suggestionData['accommodation']) ||
-                !isset($suggestionData['local_food']) ||
-                !is_array($suggestionData['itinerary'])
-            ) {
-                Log::error('AI response JSON decode error or missing keys. Response: ' . $jsonString);
-                return redirect()
-                    ->route('suggestions.index')
-                    ->with('error', 'AIからの応答が不正な形式（キー不足）でした。');
-            }
-
-            // 9. (★修正) データベースに全データを保存
-            $user->suggestions()->create([
-                'title' => $suggestionData['title'],
-                'recommendation_score' => (int) $suggestionData['recommendation_score'],
-                'content' => $suggestionData['content'],
-                'accommodation' => $suggestionData['accommodation'],  // ★ 追加
-                'local_food' => $suggestionData['local_food'],  // ★ 追加
-                'itinerary_data' => $suggestionData['itinerary'],
-            ]);
+            $generateSuggestion(Auth::user(), $validatedOptional);
 
             return redirect()
                 ->route('suggestions.index')
                 ->with('success', '新しい旅行プランが提案されました！');
-        } catch (\Exception $e) {
-            Log::error('AI Suggestion Exception: ' . $e->getMessage());
+        } catch (\Throwable $e) {
             return redirect()
                 ->route('suggestions.index')
-                ->with('error', 'AI提案中に予期せぬエラーが発生しました。(' . $e->getMessage() . ')');
+                ->with('error', $e->getMessage());
         }
     }
 
@@ -312,7 +135,6 @@ class SuggestionController extends Controller
     public function storeFromChat(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'title' => 'required|string',
             'title' => 'required|string',
             'content' => 'required',  // string or array
             'accommodation' => 'nullable|string',

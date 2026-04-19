@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-
 class AiPlannerService
 {
+    public function __construct(
+        private readonly OpenAiClient $openAi,
+    ) {
+    }
+
     /**
      * AIからの応答を生成する
      *
@@ -24,28 +26,9 @@ class AiPlannerService
         // Add system prompt at the beginning
         array_unshift($messages, $systemPrompt);
 
-        $apiKey = config('services.openai.key');
-
-        if (empty($apiKey)) {
-            throw new \Exception('AI機能が設定されていません。');
-        }
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
-            'Content-Type' => 'application/json',
-        ])
-            ->timeout(120)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => config('services.openai.model'),
-                'messages' => $messages,
-            ]);
-
-        if ($response->failed()) {
-            Log::error('OpenAI API error: ' . $response->body());
-            throw new \Exception('AIとの通信に失敗しました。');
-        }
-
-        return $response->json()['choices'][0]['message']['content'] ?? '申し訳ありません、エラーが発生しました。';
+        return $this->openAi->chatContent($messages, [
+            'timeout' => 120,
+        ]) ?: '申し訳ありません、エラーが発生しました。';
     }
 
     private function buildSystemPrompt(string $prefectureName): array
@@ -116,7 +99,7 @@ class AiPlannerService
                 ];
             } else {
                 // Include user name in the message content for the AI
-                $userName = $chat->user_name ?? 'ユーザー';
+                $userName = $chat->user_name ?? $chat->user?->name ?? 'ユーザー';
                 return [
                     'role' => 'user',
                     'content' => "{$userName}: {$chat->message}",
