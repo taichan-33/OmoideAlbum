@@ -31,8 +31,8 @@ class UpdateTripRequest extends FormRequest
             'description' => 'nullable|string',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|max:4096',
+            'photos' => 'nullable|array|max:50',
+            'photos.*' => 'image|max:10240',
             'delete_photos' => 'nullable|array',
             'delete_photos.*' => 'exists:photos,id',
         ];

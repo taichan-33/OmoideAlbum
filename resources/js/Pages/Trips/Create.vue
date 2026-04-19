@@ -279,9 +279,7 @@ const submit = () => {
                                 >
                                     <input
                                         type="file"
-                                        @input="
-                                            form.photos = $event.target.files
-                                        "
+                                        @change="form.photos = Array.from($event.target.files)"
                                         multiple
                                         accept="image/*"
                                         class="hidden"
