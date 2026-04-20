@@ -181,6 +181,18 @@ export function useAiPlannerChat({ show, selectedPrefecture, user }) {
         showPlanRequestModal.value = true;
     };
 
+    const closeMenu = () => {
+        activeMenuMessageId.value = null;
+    };
+
+    const closePlanRequestModal = () => {
+        showPlanRequestModal.value = false;
+    };
+
+    const setPlanRequestAdditional = (value) => {
+        planRequestAdditional.value = value;
+    };
+
     const sendAiMessage = async (triggerAi = true) => {
         if (!aiChatInput.value.trim() || !selectedPrefecture.value) return;
 
@@ -274,7 +286,7 @@ export function useAiPlannerChat({ show, selectedPrefecture, user }) {
 
     const toggleMenu = async (event, idx) => {
         if (activeMenuMessageId.value === idx) {
-            activeMenuMessageId.value = null;
+            closeMenu();
             return;
         }
 
@@ -356,6 +368,8 @@ export function useAiPlannerChat({ show, selectedPrefecture, user }) {
         chatContainer,
         chatHeightClass,
         chatInputTextarea,
+        closeMenu,
+        closePlanRequestModal,
         createPlanFromMessage,
         decreaseModalSize,
         handleChatKeydown,
@@ -368,6 +382,7 @@ export function useAiPlannerChat({ show, selectedPrefecture, user }) {
         planRequestQuote,
         savePlan,
         sendAiMessage,
+        setPlanRequestAdditional,
         showPlanRequestModal,
         submitPlanRequest,
         toggleMenu,

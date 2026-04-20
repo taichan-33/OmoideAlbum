@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Suggestion extends Model
 {
@@ -44,6 +45,39 @@ class Suggestion extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function scopeSearchKeyword(Builder $query, ?string $keyword): Builder
+    {
+        if (blank($keyword)) {
+            return $query;
+        }
+
+        $searchKeyword = '%'.$keyword.'%';
+
+        return $query->where(function (Builder $builder) use ($searchKeyword) {
+            $builder
+                ->where('title', 'LIKE', $searchKeyword)
+                ->orWhere('content', 'LIKE', $searchKeyword);
+        });
+    }
+
+    public function scopeFromSource(Builder $query, ?string $source): Builder
+    {
+        if (blank($source) || $source === 'all') {
+            return $query;
+        }
+
+        return $query->where('source', $source);
+    }
+
+    public function scopeSortByOption(Builder $query, ?string $sort): Builder
+    {
+        return match ($sort) {
+            'score_desc' => $query->orderBy('recommendation_score', 'desc'),
+            'score_asc' => $query->orderBy('recommendation_score', 'asc'),
+            default => $query->orderBy('created_at', 'desc'),
+        };
     }
 
     public function posts()
